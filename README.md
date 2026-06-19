@@ -16,15 +16,47 @@ Convert a directory of Markdown files into a single-file HTML documentation site
 
 ## Installation
 
-Ensure you have [Node.js](https://nodejs.org/) (v18+) installed, then install the dependencies:
+### Local Development
+
+1. Clone the repository.
+2. Ensure you have [Node.js](https://nodejs.org/) (v18+) installed.
+3. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
+### Global Installation
+
+You can install the tool globally to use the `md2site` command from anywhere:
+
+```bash
+pnpm add -g .
+# or
+npm install -g .
+```
+
+### Direct Usage (npx)
+
+If you've linked the package or it's available in your registry:
+
+```bash
+npx md2site <source-directory> [output-file.html]
+```
+
 ## Usage
 
-Run the tool using `node`:
+### Using the Command
+
+If installed globally:
+
+```bash
+md2site <source-directory> [output-file.html] [--name "Site Name"]
+```
+
+### Using Node directly
+
+If running from the source directory:
 
 ```bash
 node src/md2site.mjs <source-directory> [output-file.html] [--name "Site Name"]
