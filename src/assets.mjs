@@ -5,10 +5,10 @@ const MIME = {
   png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
   webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp', ico: 'image/x-icon', svg: 'image/svg+xml',
 };
-const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+const URL_SCHEMA_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
 export const createImageEmbedder = (root) => async (currentKey, src) => {
-  if (!src || EXTERNAL.test(src)) return src;
+  if (!src || URL_SCHEMA_REGEX.test(src)) return src;
   const clean = src.split('#')[0].split('?')[0];
   const rel = posix.normalize(posix.join(posix.dirname(currentKey), clean));
   const mime = MIME[rel.split('.').pop().toLowerCase()];
