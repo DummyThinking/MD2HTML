@@ -1,5 +1,6 @@
 import { Marked } from 'marked';
 import highlightJs from 'highlight.js';
+import yaml from 'js-yaml';
 
 const esc = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -34,6 +35,7 @@ const LANG_NAMES = {
   json: 'JSON', yaml: 'YAML', yml: 'YAML',
   md: 'Markdown', markdown: 'Markdown',
   sql: 'SQL', xml: 'XML', svg: 'SVG',
+  'package-json': 'package.json', 'composer-json': 'composer.json',
 };
 
 const LANG_COLORS = {
@@ -90,11 +92,98 @@ const highlight = (token) => {
 
 const ZOOM_BAR = `<div class="zoom-controls"><button class="zoom-btn" data-dz="0.25" title="Zoom in">${ZIN_SVG}</button><button class="zoom-btn" data-dz="-0.25" title="Zoom out">${ZOUT_SVG}</button><button class="zoom-btn" data-dz="0" title="Reset">${ZRST_SVG}</button></div>`;
 
-const previewBlock = (renderHtml, sourceHtml, label) => {
+const previewBlock = (renderHtml, sourceHtml, label, { zoom = true } = {}) => {
   const hdr = `<div class="preview-header"><div class="code-title"><span class="language">${esc(label)}</span></div><div class="actions"><button class="toggle-btn" title="Toggle source"><span class="icon-src">${CODE_SVG}</span><span class="icon-prev">${EYE_SVG}</span></button><button class="copy-btn" title="Copy source">${COPY_SVG}</button></div></div>`;
-  const render = `<div class="render-view">${ZOOM_BAR}<div class="diagram-canvas"><div class="diagram-inner">${renderHtml}</div></div></div>`;
+  const renderContent = zoom
+    ? `${ZOOM_BAR}<div class="diagram-canvas"><div class="diagram-inner">${renderHtml}</div></div>`
+    : renderHtml;
+  const render = `<div class="render-view${zoom ? '' : ' data-view'}">${renderContent}</div>`;
   const source = `<div class="source-view hidden"><pre class="source-code">${sourceHtml}</pre></div>`;
   return `<div class="preview-block">${hdr}${render}${source}</div>\n`;
+};
+
+const isFlat = (v) => v == null || v instanceof Date || typeof v !== 'object';
+
+const cellVal = (v) => {
+  if (v == null) return '';
+  if (v instanceof Date) return esc(v.toISOString());
+  return esc(String(v));
+};
+
+const toDataTable = (data) => {
+  if (Array.isArray(data) && data.length > 0
+      && data.every((r) => r && typeof r === 'object' && !Array.isArray(r))
+      && data.every((r) => Object.values(r).every(isFlat))) {
+    const keys = [...new Set(data.flatMap((r) => Object.keys(r)))];
+    const head = `<tr>${keys.map((k) => `<th>${esc(k)}</th>`).join('')}</tr>`;
+    const body = data.map((r) => `<tr>${keys.map((k) => `<td>${cellVal(r[k])}</td>`).join('')}</tr>`).join('');
+    return `<table class="data-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  }
+  if (data && typeof data === 'object' && !Array.isArray(data)
+      && Object.values(data).every(isFlat)) {
+    const rows = Object.entries(data).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${cellVal(v)}</td></tr>`).join('');
+    return `<table class="data-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  return null;
+};
+
+const tryDataPreview = (text, lang) => {
+  try {
+    const data = lang === 'json' ? JSON.parse(text) : yaml.load(text);
+    return toDataTable(data);
+  } catch {
+    return null;
+  }
+};
+
+const depTable = (deps) => {
+  if (!deps || typeof deps !== 'object' || !Object.keys(deps).length) return '';
+  const rows = Object.entries(deps)
+    .map(([pkg, ver]) => `<tr><td class="pkg-dep-name">${esc(pkg)}</td><td class="pkg-dep-ver">${esc(String(ver))}</td></tr>`)
+    .join('');
+  return `<table class="data-table"><thead><tr><th>Package</th><th>Version</th></tr></thead><tbody>${rows}</tbody></table>`;
+};
+
+const scriptTable = (scripts) => {
+  if (!scripts || typeof scripts !== 'object' || !Object.keys(scripts).length) return '';
+  const rows = Object.entries(scripts)
+    .map(([name, cmd]) => `<tr><td class="pkg-script-name">${esc(name)}</td><td class="pkg-script-cmd">${esc(String(cmd))}</td></tr>`)
+    .join('');
+  return `<table class="data-table"><thead><tr><th>Script</th><th>Command</th></tr></thead><tbody>${rows}</tbody></table>`;
+};
+
+const pkgSection = (title, content) =>
+  content ? `<div class="pkg-section"><div class="pkg-section-title">${title}</div>${content}</div>` : '';
+
+const badge = (text, cls) => `<span class="pkg-badge ${cls}">${esc(text)}</span>`;
+
+const renderConfigBlock = (text, lang) => {
+  let data;
+  try { data = JSON.parse(text); } catch { return null; }
+  if (!data || typeof data !== 'object' || Array.isArray(data) || !data.name) return null;
+
+  const isComposer = lang === 'composer-json';
+  const depKey    = isComposer ? 'require'     : 'dependencies';
+  const devDepKey = isComposer ? 'require-dev' : 'devDependencies';
+  const label     = isComposer ? 'composer.json' : 'package.json';
+
+  const nameLine = `<div class="pkg-name-row"><span class="pkg-name">${esc(data.name)}</span>${
+    data.version  ? badge(data.version, 'pkg-version') : ''}${
+    data.license  ? badge(data.license, 'pkg-license') : ''}${
+    data.private  ? badge('private',    'pkg-private')  : ''}</div>`;
+
+  const header = `<div class="pkg-header">${nameLine}${
+    data.description ? `<div class="pkg-desc">${esc(data.description)}</div>` : ''}</div>`;
+
+  const sections = [
+    pkgSection('Scripts',          scriptTable(data.scripts)),
+    pkgSection('Dependencies',     depTable(data[depKey])),
+    pkgSection('Dev Dependencies', depTable(data[devDepKey])),
+    pkgSection('Peer Dependencies',depTable(data.peerDependencies)),
+  ].join('');
+
+  const srcHtml = highlightJs.highlight(text, { language: 'json' }).value;
+  return previewBlock(`<div class="pkg-view">${header}${sections}</div>`, srcHtml, label, { zoom: false });
 };
 
 export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
@@ -122,6 +211,18 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
       code(token) {
         if (token.lang === 'mermaid') {
           return previewBlock(`<pre class="mermaid">${esc(token.text)}</pre>`, esc(token.text), 'Mermaid');
+        }
+        if (token.lang === 'package-json' || token.lang === 'composer-json') {
+          const result = renderConfigBlock(token.text, token.lang);
+          if (result) return result;
+        }
+        if (token.lang === 'json' || token.lang === 'yaml' || token.lang === 'yml') {
+          const tableHtml = tryDataPreview(token.text, token.lang);
+          if (tableHtml) {
+            const srcHtml = highlightJs.highlight(token.text, { language: token.lang }).value;
+            const label = LANG_NAMES[token.lang] ?? token.lang.toUpperCase();
+            return previewBlock(tableHtml, srcHtml, label, { zoom: false });
+          }
         }
         return highlight(token);
       },

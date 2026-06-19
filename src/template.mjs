@@ -108,13 +108,28 @@ pre.mermaid{background:none;border:none;border-radius:0;padding:0;margin:0;overf
   font-family:"SF Mono",SFMono-Regular,Consolas,Menlo,monospace}
 .code-content tr:hover{background:var(--accent-soft)}
 .render-view{position:relative;min-height:200px;background:var(--accent-soft);overflow:hidden;cursor:grab}
+.render-view.data-view{overflow-x:auto;cursor:default;min-height:0;background:none}
 .zoom-controls{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2}
 .zoom-btn{display:flex;align-items:center;justify-content:center;background:var(--surface);
   color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px;
   cursor:pointer;line-height:0;transition:.15s;box-shadow:var(--shadow)}
 .zoom-btn:hover{color:var(--text);border-color:var(--muted)}
 .diagram-canvas{padding:24px}
+.data-table{display:table;width:100%;margin:0;font-size:.85rem}
 .diagram-inner{transform-origin:top center;transition:transform .15s}
+.pkg-view{padding:16px 20px}
+.pkg-header{padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--border)}
+.pkg-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+.pkg-name{font-weight:700;font-size:1rem;font-family:"SF Mono",SFMono-Regular,Consolas,Menlo,monospace}
+.pkg-badge{font-size:.72rem;padding:2px 9px;border-radius:20px;border:1px solid transparent;line-height:1.6}
+.pkg-version{background:var(--accent-soft);color:var(--accent)}
+.pkg-license{background:var(--code-bg);color:var(--muted);border-color:var(--border)}
+.pkg-private{background:var(--code-bg);color:var(--muted);border-color:var(--border);font-style:italic}
+.pkg-desc{font-size:.88rem;color:var(--muted)}
+.pkg-section{margin-top:14px}
+.pkg-section-title{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.pkg-dep-name,.pkg-script-name{font-family:"SF Mono",SFMono-Regular,Consolas,Menlo,monospace;font-size:.83rem;white-space:nowrap}
+.pkg-dep-ver,.pkg-script-cmd{font-family:"SF Mono",SFMono-Regular,Consolas,Menlo,monospace;font-size:.83rem;color:var(--muted)}
 pre.source-code{border:none;border-radius:0;margin:0}
 .source-view.hidden{display:none}
 .hidden{display:none}
@@ -219,7 +234,7 @@ ${mermaidTag}
   });
   document.addEventListener('mousedown',function(e){
     var rv=e.target.closest('.render-view');
-    if(!rv||e.target.closest('.zoom-controls'))return;
+    if(!rv||rv.classList.contains('data-view')||e.target.closest('.zoom-controls'))return;
     e.preventDefault();
     var inner=rv.querySelector('.diagram-inner');
     panState={inner:inner,x:e.clientX,y:e.clientY,
