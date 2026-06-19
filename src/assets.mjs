@@ -20,7 +20,8 @@ export const createImageEmbedder = (root) => async (currentKey, src) => {
     return mime === 'image/svg+xml'
       ? `data:image/svg+xml;utf8,${encodeURIComponent(content)}`
       : `data:${mime};base64,${content}`;
-  } catch {
+  } catch (err) {
+    process.stderr.write(`[md2site] warn  ${currentKey} — could not embed image "${clean}": ${err.code ?? err.message}\n`);
     return src;
   }
 };

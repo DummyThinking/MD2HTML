@@ -209,12 +209,26 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
         return `<h${token.depth} id="${token.id}"><a class="anchor" href="#/${key}~${token.id}" aria-label="Permalink">#</a>${inner}</h${token.depth}>\n`;
       },
       code(token) {
+        const line = markdown.slice(0, markdown.indexOf(token.raw)).split('\n').length;
+        const warn = (msg) => process.stderr.write(`[md2site] warn  ${key}:${line} — ${msg}\n`);
         if (token.lang === 'mermaid') {
+          if (!token.text.trim()) warn('mermaid: empty block');
           return previewBlock(`<pre class="mermaid">${esc(token.text)}</pre>`, esc(token.text), 'Mermaid');
         }
         if (token.lang === 'package-json' || token.lang === 'composer-json') {
           const result = renderConfigBlock(token.text, token.lang);
           if (result) return result;
+          const reason = (() => {
+            try {
+              const d = JSON.parse(token.text);
+              if (!d || typeof d !== 'object' || Array.isArray(d)) return 'root value is not an object';
+              if (!d.name) return 'missing required "name" field';
+              return 'unknown';
+            } catch (e) {
+              return `JSON parse error — ${e.message}`;
+            }
+          })();
+          warn(`${token.lang}: ${reason}`);
         }
         if (token.lang === 'json' || token.lang === 'yaml' || token.lang === 'yml') {
           const tableHtml = tryDataPreview(token.text, token.lang);
