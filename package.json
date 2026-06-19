@@ -1,0 +1,14 @@
+{
+  "name": "md2html",
+  "version": "1.0.0",
+  "description": "Convert a directory of Markdown files into a single-file HTML documentation site with Mermaid support and syntax highlighting.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true,
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "marked": "^18.0.5",
+    "mermaid": "^11.15.0"
+  }
+}

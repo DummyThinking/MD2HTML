@@ -1,0 +1,30 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+
+# AI Tools
+.cursorrules
+.aider*
+.aiexclude
+.jig/
+.claude
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs (if any)
+dist/
+build/
+out/
