@@ -80,6 +80,7 @@ node src/md2site.mjs ./docs wiki.html --name "Internal Wiki"
 2.  **Conversion**: Uses `marked` to convert Markdown to HTML.
 3.  **Assets**: Locally referenced images are automatically embedded as Base64/SVG data URIs.
 4.  **Diagrams**: If Mermaid code blocks are found, the `mermaid` library is bundled into the output.
+    > **Warning:** The Mermaid library is ~3 MB minified. A site with even a single Mermaid diagram will produce an output file that is roughly 3 MB larger than one without. Avoid Mermaid in size-sensitive contexts.
 5.  **Bundling**: All content, styles, and scripts are injected into a single HTML template.
 6.  **Navigation**: The generated file is a Single-Page Application that handles navigation via URL hashes (e.g., `#/path/to/page~heading-id`).
 

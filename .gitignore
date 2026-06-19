@@ -14,11 +14,23 @@ pnpm-debug.log*
 *.swn
 
 # AI Tools
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.github/copilot-instructions.md
 .cursorrules
+.cursor/
 .aider*
 .aiexclude
 .jig/
-.claude
+.claude/
+.copilot/
+.windsurf/
+.cline/
+.roo/
+.amazonq/
+.codeium/
+.continue/
 
 # OS
 .DS_Store
@@ -28,3 +40,6 @@ Thumbs.db
 dist/
 build/
 out/
+
+# Local testing
+tmp/
