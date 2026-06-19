@@ -15,12 +15,19 @@ const slugify = () => {
   };
 };
 
-/**
- * @param {import('marked').Token} token
- */
+const wrapLines = (html) => {
+  const lines = html.split('\n');
+  if (lines[lines.length - 1] === '') lines.pop();
+  return { body: lines.map((l) => `<span class="line">${l}</span>`).join(''), count: lines.length };
+};
+
 const highlight = (token) => {
   const lang = highlightJs.getLanguage(token.lang) ? token.lang : 'plaintext';
-  return `<pre><code class="hljs language-${esc(token.lang || lang)}">${highlightJs.highlight(token.text, { language: lang }).value}</code></pre>\n`;
+  const highlighted = highlightJs.highlight(token.text, { language: lang }).value;
+  const langAttr = token.lang ? ` data-lang="${esc(token.lang)}"` : '';
+  const { body, count } = wrapLines(highlighted);
+  const preCls = count > 1 ? 'code-block line-numbers' : 'code-block';
+  return `<pre class="${preCls}"${langAttr}><code class="hljs language-${esc(lang)}">${body}</code></pre>\n`;
 };
 
 export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
@@ -51,12 +58,25 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
         if (!token.id) return `<h${token.depth}>${inner}</h${token.depth}>\n`;
         return `<h${token.depth} id="${token.id}"><a class="anchor" href="#/${key}~${token.id}" aria-label="Permalink">#</a>${inner}</h${token.depth}>\n`;
       },
-      /**
-       * @param {import('marked').Tokens.Code} token
-       */
       code(token) {
-        if (token.lang === 'mermaid') return `<pre class="mermaid">${esc(token.text)}</pre>\n`;
+        if (token.lang === 'mermaid') {
+          const srcLines = token.text.split('\n');
+          const srcBody = srcLines.map((l) => `<span class="line">${esc(l)}</span>`).join('');
+          const srcCls = `diagram-src${srcLines.length > 1 ? ' line-numbers' : ''}`;
+          return `<div class="diagram-wrap"><pre class="mermaid">${esc(token.text)}</pre><button class="src-toggle" aria-expanded="false">Show source</button><pre class="${srcCls}" data-lang="mermaid"><code>${srcBody}</code></pre></div>\n`;
+        }
         return highlight(token);
+      },
+      image(token) {
+        const href = token.href ?? '';
+        const alt = esc(token.text ?? '');
+        const titleAttr = token.title ? ` title="${esc(token.title)}"` : '';
+        const img = `<img src="${href}" alt="${alt}"${titleAttr}>`;
+        if (!href.startsWith('data:image/svg+xml;utf8,')) return img;
+        const raw = decodeURIComponent(href.slice('data:image/svg+xml;utf8,'.length));
+        const { body, count } = wrapLines(highlightJs.highlight(raw, { language: 'xml' }).value);
+        const srcCls = `diagram-src${count > 1 ? ' line-numbers' : ''}`;
+        return `<div class="diagram-wrap">${img}<button class="src-toggle" aria-expanded="false">Show source</button><pre class="${srcCls}" data-lang="svg"><code class="hljs language-xml">${body}</code></pre></div>`;
       },
     },
   });

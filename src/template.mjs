@@ -85,6 +85,22 @@ img{max-width:100%;border-radius:8px}hr{border:none;border-top:1px solid var(--b
 .hljs-comment{color:var(--hl-com);font-style:italic}
 .hljs-title,.hljs-section{color:var(--hl-fn)}
 .hljs-literal,.hljs-type,.hljs-name{color:var(--hl-lit)}
+pre[data-lang]{padding-top:2.1rem}
+pre[data-lang]::before{content:attr(data-lang);position:absolute;top:.6rem;left:1.2rem;
+  font:.7rem/1 "SF Mono",SFMono-Regular,Consolas,Menlo,monospace;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;user-select:none;pointer-events:none}
+pre.line-numbers{padding-left:2.5rem;counter-reset:line}
+pre.line-numbers .line{display:block;position:relative}
+pre.line-numbers .line::before{counter-increment:line;content:counter(line);position:absolute;
+  left:-2.4rem;width:2rem;text-align:right;color:var(--muted);opacity:.4;
+  user-select:none;pointer-events:none;font-variant-numeric:tabular-nums}
+.diagram-wrap{margin:1.3em 0}
+.diagram-wrap>.mermaid,.diagram-wrap>img{margin:0}
+.src-toggle{display:block;margin-top:.55rem;font-size:.72rem;padding:.3em .8em;border-radius:6px;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;line-height:1}
+.src-toggle:hover{color:var(--text);border-color:var(--accent)}
+.diagram-src{display:none;margin-top:.5rem}
+.diagram-src.visible{display:block}
 #theme{position:fixed;top:1.1rem;right:1.3rem;z-index:40;width:38px;height:38px;border-radius:50%;
   border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:1rem;
   box-shadow:var(--shadow);display:grid;place-items:center}
@@ -142,6 +158,13 @@ ${mermaidTag}
     window.mermaid.run({nodes:nodes});
   }
   document.querySelector('.menu').onclick=function(){sidebar.classList.toggle('open');};
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest('.src-toggle');if(!btn)return;
+    var src=btn.nextElementSibling;
+    var open=src.classList.toggle('visible');
+    btn.textContent=open?'Hide source':'Show source';
+    btn.setAttribute('aria-expanded',open);
+  });
   function parseHash(){
     var h=location.hash.slice(2);
     if(!h)return [SITE.indexKey,null];
