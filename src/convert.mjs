@@ -1,5 +1,5 @@
 import { Marked } from 'marked';
-import hljs from 'highlight.js';
+import highlightJs from 'highlight.js';
 
 const esc = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -15,9 +15,12 @@ const slugify = () => {
   };
 };
 
+/**
+ * @param {import('marked').Token} token
+ */
 const highlight = (token) => {
-  const lang = hljs.getLanguage(token.lang) ? token.lang : 'plaintext';
-  return `<pre><code class="hljs language-${esc(token.lang || lang)}">${hljs.highlight(token.text, { language: lang }).value}</code></pre>\n`;
+  const lang = highlightJs.getLanguage(token.lang) ? token.lang : 'plaintext';
+  return `<pre><code class="hljs language-${esc(token.lang || lang)}">${highlightJs.highlight(token.text, { language: lang }).value}</code></pre>\n`;
 };
 
 export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
@@ -27,6 +30,9 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
   const marked = new Marked({
     gfm: true,
     async: true,
+    /**
+     * @param {import('marked').Token} token
+     */
     walkTokens: async (token) => {
       if (token.type === 'link') token.href = resolveLink(key, token.href);
       else if (token.type === 'image') token.href = await resolveImage(key, token.href);
@@ -37,11 +43,17 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
       }
     },
     renderer: {
+      /**
+       * @param {import('marked').Tokens.Heading} token
+       */
       heading(token) {
         const inner = this.parser.parseInline(token.tokens);
         if (!token.id) return `<h${token.depth}>${inner}</h${token.depth}>\n`;
         return `<h${token.depth} id="${token.id}"><a class="anchor" href="#/${key}~${token.id}" aria-label="Permalink">#</a>${inner}</h${token.depth}>\n`;
       },
+      /**
+       * @param {import('marked').Tokens.Code} token
+       */
       code(token) {
         if (token.lang === 'mermaid') return `<pre class="mermaid">${esc(token.text)}</pre>\n`;
         return highlight(token);

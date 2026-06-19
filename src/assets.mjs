@@ -14,10 +14,12 @@ export const createImageEmbedder = (root) => async (currentKey, src) => {
   const mime = MIME[rel.split('.').pop().toLowerCase()];
   if (!mime) return src;
   try {
-    const buf = await readFile(join(root, ...rel.split('/')));
+    const filePath = join(root, ...rel.split('/'));
+    const encoding = mime === 'image/svg+xml' ? 'utf8' : 'base64';
+    const content = await readFile(filePath, encoding);
     return mime === 'image/svg+xml'
-      ? `data:image/svg+xml;utf8,${encodeURIComponent(buf.toString('utf8'))}`
-      : `data:${mime};base64,${buf.toString('base64')}`;
+      ? `data:image/svg+xml;utf8,${encodeURIComponent(content)}`
+      : `data:${mime};base64,${content}`;
   } catch {
     return src;
   }
