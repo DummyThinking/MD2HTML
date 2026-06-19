@@ -24,6 +24,8 @@ Convert a directory of Markdown files into a single-file HTML documentation site
 
 ```bash
 pnpm install
+# or
+npm install
 ```
 
 ### Global Installation
