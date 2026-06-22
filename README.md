@@ -69,8 +69,25 @@ node src/md2site.mjs ./docs --favicon ./docs/logo.png --watch
 
 ## Configuration file
 
-Place `md2site.json` in the root of your source directory to set project-level defaults. CLI flags override config
-values.
+Place a config file in the root of your source directory to set project-level defaults. CLI flags always override config values.
+
+Two filenames are supported, checked in this order:
+
+| File | Format | Notes |
+|---|---|---|
+| `.md2siterc` | JSON **or** YAML | Preferred — dotfile convention, useful with global installs |
+| `md2site.json` | JSON | Fallback when `.md2siterc` is absent |
+
+### `.md2siterc` (YAML)
+
+```yaml
+name: My Docs
+output: docs.html
+theme: dark
+favicon: assets/icon.png
+```
+
+### `.md2siterc` or `md2site.json` (JSON)
 
 ```json
 {
@@ -87,6 +104,8 @@ values.
 | `output`  | string                | Output file path (same as the positional arg)           |
 | `theme`   | `"light"` \| `"dark"` | Default theme; users can still toggle it                |
 | `favicon` | string                | Path to favicon image, relative to the source directory |
+
+When the tool is installed globally, keeping `.md2siterc` alongside your docs means running `md2site ./docs` from any directory just works — no flags needed.
 
 ## Frontmatter
 

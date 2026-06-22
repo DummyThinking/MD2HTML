@@ -2,6 +2,7 @@
 import { resolve, join } from 'node:path';
 import { writeFile, readFile } from 'node:fs/promises';
 import process from 'node:process';
+import yaml from 'js-yaml';
 import { bundle } from './bundle.mjs';
 import { renderSite } from './template.mjs';
 import * as reporter from './reporter.mjs';
@@ -21,7 +22,23 @@ const parseArgs = (argv) => {
   return { src: positional[0], out: positional[1], name, favicon, watch };
 };
 
+const parseConfigText = (text, allowYaml = false) => {
+  try { return JSON.parse(text); } catch { /* not JSON */ }
+  if (allowYaml) {
+    const parsed = yaml.load(text);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+  }
+  return null;
+};
+
 const loadConfig = async (srcDir) => {
+  // .md2siterc (JSON or YAML) takes precedence over md2site.json
+  try {
+    const text = await readFile(join(srcDir, '.md2siterc'), 'utf8');
+    const cfg = parseConfigText(text, true);
+    if (cfg) return cfg;
+    reporter.warn('.md2siterc', 'could not parse as JSON or YAML — falling back to md2site.json');
+  } catch { /* not found, try next */ }
   try {
     return JSON.parse(await readFile(join(srcDir, 'md2site.json'), 'utf8'));
   } catch {
