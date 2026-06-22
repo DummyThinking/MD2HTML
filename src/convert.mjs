@@ -36,6 +36,46 @@ const LANG_NAMES = {
   md: 'Markdown', markdown: 'Markdown',
   sql: 'SQL', xml: 'XML', svg: 'SVG',
   'package-json': 'package.json', 'composer-json': 'composer.json',
+  // template languages
+  blade: 'Blade', 'blade.php': 'Blade',
+  twig: 'Twig',
+  handlebars: 'Handlebars', hbs: 'Handlebars',
+  erb: 'ERB',
+  haml: 'HAML',
+  jinja: 'Jinja2', jinja2: 'Jinja2', django: 'Django', nunjucks: 'Nunjucks',
+  liquid: 'Liquid',
+  // additional common languages
+  php: 'PHP',
+  scss: 'SCSS', less: 'Less',
+  kotlin: 'Kotlin', kt: 'Kotlin',
+  swift: 'Swift',
+  dart: 'Dart',
+  lua: 'Lua',
+  perl: 'Perl', pl: 'Perl',
+  r: 'R',
+  powershell: 'PowerShell', ps1: 'PowerShell',
+  graphql: 'GraphQL', gql: 'GraphQL',
+  dockerfile: 'Dockerfile', docker: 'Dockerfile',
+  nginx: 'Nginx',
+  ini: 'INI', toml: 'TOML',
+  diff: 'Diff',
+  makefile: 'Makefile',
+  proto: 'Protobuf', protobuf: 'Protobuf',
+};
+
+// Maps fence identifiers that highlight.js doesn't know natively to its actual grammar names.
+const LANG_ALIASES = {
+  blade: 'php-template', 'blade.php': 'php-template',
+  jinja: 'django', jinja2: 'django', nunjucks: 'django',
+  hbs: 'handlebars',
+  kt: 'kotlin',
+  pl: 'perl',
+  ps1: 'powershell',
+  gql: 'graphql',
+  docker: 'dockerfile',
+  toml: 'ini',
+  proto: 'protobuf',
+  r: 'r',
 };
 
 const LANG_COLORS = {
@@ -46,6 +86,17 @@ const LANG_COLORS = {
   html: '#e34c26', css: '#264de4',
   sh: '#89e051', bash: '#89e051', shell: '#89e051',
   java: '#b07219', rb: '#cc342d', ruby: '#cc342d',
+  php: '#4f5d95',
+  scss: '#c6538c', less: '#1d365d',
+  kotlin: '#7f52ff', kt: '#7f52ff',
+  swift: '#f05138',
+  dart: '#00b4ab',
+  lua: '#000080',
+  powershell: '#012456', ps1: '#012456',
+  graphql: '#e10098', gql: '#e10098',
+  blade: '#ef3b2d', 'blade.php': '#ef3b2d',
+  twig: '#bacb52',
+  handlebars: '#f7931e', hbs: '#f7931e',
 };
 
 // Split highlighted HTML at newlines while keeping span tags balanced.
@@ -79,7 +130,9 @@ const codeHeader = (langKey) => {
 };
 
 const highlight = (token) => {
-  const lang = highlightJs.getLanguage(token.lang) ? token.lang : 'plaintext';
+  const alias = LANG_ALIASES[token.lang?.toLowerCase()];
+  const resolved = alias ?? token.lang;
+  const lang = highlightJs.getLanguage(resolved) ? resolved : 'plaintext';
   const lines = splitHighlighted(highlightJs.highlight(token.text, { language: lang }).value);
   const multi = lines.length > 1;
   const rows = lines.map((line, i) =>
@@ -244,7 +297,7 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
         const href = token.href ?? '';
         const alt = esc(token.text ?? '');
         const titleAttr = token.title ? ` title="${esc(token.title)}"` : '';
-        const img = `<img src="${href}" alt="${alt}"${titleAttr}>`;
+        const img = `<img src="${esc(href)}" alt="${alt}"${titleAttr}>`;
         if (!href.startsWith('data:image/svg+xml;utf8,')) return img;
         const raw = decodeURIComponent(href.slice('data:image/svg+xml;utf8,'.length));
         return previewBlock(img, highlightJs.highlight(raw, { language: 'xml' }).value, 'SVG');

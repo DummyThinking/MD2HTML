@@ -16,6 +16,8 @@ const renderTree = (nodes) =>
  */
 export const renderSite = ({ pages, tree, indexKey, siteTitle, usesMermaid, mermaidLib }) => {
   const data = JSON.stringify({ pages, indexKey }).replace(/</g, '\\u003c');
+  const multiPage = Object.keys(pages).length > 1;
+  const shellCols = multiPage ? '300px minmax(0,1fr) 220px' : 'minmax(0,1fr) 220px';
   const mermaidTag = usesMermaid && mermaidLib
     ? `<script>${mermaidLib.replace(/<\/script/gi, '<\\/script')}</script>`
     : '';
@@ -38,7 +40,7 @@ body{margin:0;background:var(--bg);color:var(--text);
   font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:50;transition:width .1s}
-.shell{display:grid;grid-template-columns:300px minmax(0,1fr) 220px;max-width:1320px;margin:0 auto;gap:2.5rem;padding:0 1.5rem}
+.shell{display:grid;grid-template-columns:${shellCols};max-width:1320px;margin:0 auto;gap:2.5rem;padding:0 1.5rem}
 aside,.toc-rail{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:2rem 0;scrollbar-width:thin}
 .brand{font-weight:700;font-size:.95rem;margin-bottom:1rem}
 .tree-label,.toc-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:1.2rem 0 .5rem}
@@ -152,13 +154,13 @@ pre.source-code{border:none;border-radius:0;margin:0}
 <body>
 <div id="progress"></div>
 <button id="theme" aria-label="Toggle theme">◐</button>
-<button class="menu" aria-label="Toggle navigation">☰</button>
+${multiPage ? `<button class="menu" aria-label="Toggle navigation">☰</button>` : ''}
 <div class="shell">
-  <aside id="sidebar">
+  ${multiPage ? `<aside id="sidebar">
     <div class="brand">${esc(siteTitle)}</div>
     <div class="tree-label">Pages</div>
     <div id="tree">${renderTree(tree)}</div>
-  </aside>
+  </aside>` : ''}
   <main><article id="page"></article></main>
   <div class="toc-rail"><div class="toc-label">On this page</div><ul id="toc"></ul></div>
 </div>
@@ -190,7 +192,8 @@ ${mermaidTag}
       flowchart:{useMaxWidth:true,htmlLabels:true},sequence:{useMaxWidth:true},gantt:{useMaxWidth:true}});
     window.mermaid.run({nodes:nodes});
   }
-  document.querySelector('.menu').onclick=function(){sidebar.classList.toggle('open');};
+  var menuBtn=document.querySelector('.menu');
+  if(menuBtn)menuBtn.onclick=function(){sidebar.classList.toggle('open');};
   var CHECK_SVG='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   document.addEventListener('click',function(e){
     var codeCopy=e.target.closest('.code-block .copy-btn');
@@ -259,7 +262,7 @@ ${mermaidTag}
     var h=location.hash.slice(2);
     if(!h)return [SITE.indexKey,null];
     var i=h.lastIndexOf('~');
-    return i<0?[decodeURIComponent(h),null]:[decodeURIComponent(h.slice(0,i)),h.slice(i+1)];
+    return i<0?[decodeURIComponent(h),null]:[decodeURIComponent(h.slice(0,i)),decodeURIComponent(h.slice(i+1))];
   }
   function renderToc(toc,key){
     tocEl.innerHTML=toc.map(function(h){
@@ -297,7 +300,7 @@ ${mermaidTag}
       document.title=page.title;
       enhance();
     }
-    sidebar.classList.remove('open');
+    if(sidebar)sidebar.classList.remove('open');
     requestAnimationFrame(function(){
       if(hid){var el=document.getElementById(hid);if(el){el.scrollIntoView();return;}}
       window.scrollTo(0,0);
