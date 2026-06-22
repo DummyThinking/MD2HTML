@@ -133,18 +133,43 @@ const codeHeader = (langKey, codeTitle = '') => {
   return `<div class="code-header"><div class="code-title"><span class="lang-dot"${dotStyle}></span>${label}</div><button class="copy-btn" title="Copy">${COPY_SVG}</button></div>`;
 };
 
+// Subset for auto-detection. Excludes C-family, JVM, and JS/TS/Go — those are too
+// syntactically similar to each other and produce confident but wrong results on short
+// snippets. The languages here are distinctive enough to detect reliably. relevance >= 5
+// is required, which means trivially short/ambiguous snippets stay unlabeled (correct).
+const DETECT_SUBSET = [
+  'bash', 'css', 'html', 'json', 'php',
+  'powershell', 'python', 'ruby', 'rust', 'scss',
+  'sql', 'xml', 'yaml',
+];
+
 const highlight = (token) => {
-  const alias = LANG_ALIASES[token.lang?.toLowerCase()];
-  const resolved = alias ?? token.lang;
-  const lang = highlightJs.getLanguage(resolved) ? resolved : 'plaintext';
-  const lines = splitHighlighted(highlightJs.highlight(token.text, { language: lang }).value);
+  let effectiveLang, hlValue;
+  if (token.lang) {
+    const alias = LANG_ALIASES[token.lang.toLowerCase()];
+    const resolved = alias ?? token.lang;
+    effectiveLang = highlightJs.getLanguage(resolved) ? resolved : 'plaintext';
+    hlValue = highlightJs.highlight(token.text, { language: effectiveLang }).value;
+  } else {
+    const result = highlightJs.highlightAuto(token.text, DETECT_SUBSET);
+    if (result.language && (result.relevance ?? 0) >= 5) {
+      effectiveLang = result.language;
+      hlValue = result.value;
+    } else {
+      effectiveLang = null;
+      hlValue = highlightJs.highlight(token.text, { language: 'plaintext' }).value;
+    }
+  }
+  const lines = splitHighlighted(hlValue);
   const multi = lines.length > 1;
   const rows = lines.map((line, i) =>
     multi
       ? `<tr><td class="line-number">${i + 1}</td><td class="code-line">${line || '&nbsp;'}</td></tr>`
       : `<tr><td class="code-line">${line}</td></tr>`
   ).join('');
-  return `<div class="code-block">${codeHeader(token.lang, token._codeTitle)}<div class="code-content"><table>${rows}</table></div></div>\n`;
+  // token.lang (user-specified short form like 'js') preferred over resolved name for display
+  const displayLang = token.lang || effectiveLang;
+  return `<div class="code-block">${codeHeader(displayLang, token._codeTitle)}<div class="code-content"><table>${rows}</table></div></div>\n`;
 };
 
 const ZOOM_BAR = `<div class="zoom-controls"><button class="zoom-btn" data-dz="0.25" title="Zoom in">${ZIN_SVG}</button><button class="zoom-btn" data-dz="-0.25" title="Zoom out">${ZOUT_SVG}</button><button class="zoom-btn" data-dz="0" title="Reset">${ZRST_SVG}</button></div>`;
