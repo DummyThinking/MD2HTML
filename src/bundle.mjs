@@ -4,6 +4,7 @@ import { createImageEmbedder } from './assets.mjs';
 import { loadMermaidLib } from './mermaid.mjs';
 import { convert } from './convert.mjs';
 import { buildTree } from './tree.mjs';
+import * as reporter from './reporter.mjs';
 
 /**
  * @typedef {Object} Page
@@ -11,6 +12,13 @@ import { buildTree } from './tree.mjs';
  * @property {string} body
  * @property {boolean} usesMermaid
  * @property {Array<{id: string, text: string, depth: number}>} toc
+ */
+
+/**
+ * @typedef {Object} ImageStat
+ * @property {string} page
+ * @property {string} src
+ * @property {number} size  raw file size in bytes
  */
 
 /**
@@ -24,6 +32,8 @@ import { buildTree } from './tree.mjs';
  * @property {string|null} mermaidLib
  * @property {string} [favicon]
  * @property {string} [defaultTheme]
+ * @property {ImageStat[]} imageStats
+ * @property {string[]} mermaidPages
  */
 
 const treeOrder = (nodes, out = []) => {
@@ -46,14 +56,14 @@ export const bundle = async (root) => {
   if (!active.length) throw new Error('all .md files are marked as draft');
 
   const resolveLink = createResolver(new Set(active.map((s) => s.key)));
-  const resolveImage = createImageEmbedder(root);
+  const imageStats = [];
+  const resolveImage = createImageEmbedder(root, (page, src, size) => imageStats.push({ page, src, size }));
 
   const total = active.length;
   let done = 0;
   const results = await Promise.all(active.map(async ({ key, markdown, meta }) => {
     const page = await convert(markdown, key, { resolveLink, resolveImage });
-    done++;
-    process.stderr.write(`[md2site] ${done}/${total} ${key}\n`);
+    reporter.progress(++done, total, key);
     return { key, page, meta };
   }));
 
@@ -68,12 +78,13 @@ export const bundle = async (root) => {
   }
 
   for (const { from, href } of resolveLink.broken) {
-    process.stderr.write(`[md2site] warn  ${from} — broken link: "${href}"\n`);
+    reporter.warn(from, `broken link: "${href}"`);
   }
 
   const tree = buildTree(list);
   const order = treeOrder(tree);
+  const mermaidPages = results.filter((r) => r.page.usesMermaid).map((r) => r.key);
   const indexKey = active.find((s) => /(^|\/)(index|readme)$/i.test(s.key))?.key ?? active[0].key;
   const mermaidLib = usesMermaid ? await loadMermaidLib() : null;
-  return { pages, tree, order, indexKey, siteTitle: pages[indexKey].title, usesMermaid, mermaidLib };
+  return { pages, tree, order, indexKey, siteTitle: pages[indexKey].title, usesMermaid, mermaidLib, imageStats, mermaidPages };
 };

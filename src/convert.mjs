@@ -1,6 +1,7 @@
 import { Marked } from 'marked';
 import highlightJs from 'highlight.js';
 import yaml from 'js-yaml';
+import { warn as reportWarn } from './reporter.mjs';
 
 const esc = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -282,7 +283,7 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
       },
       code(token) {
         const line = markdown.slice(0, markdown.indexOf(token.raw)).split('\n').length;
-        const warn = (msg) => process.stderr.write(`[md2site] warn  ${key}:${line} — ${msg}\n`);
+        const warn = (msg) => reportWarn(`${key}:${line}`, msg);
         if (token.lang === 'mermaid') {
           if (!token.text.trim()) warn('mermaid: empty block');
           return previewBlock(`<pre class="mermaid">${esc(token.text)}</pre>`, esc(token.text), token._codeTitle || 'Mermaid');

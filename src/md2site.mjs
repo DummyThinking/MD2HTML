@@ -4,6 +4,7 @@ import { writeFile, readFile } from 'node:fs/promises';
 import process from 'node:process';
 import { bundle } from './bundle.mjs';
 import { renderSite } from './template.mjs';
+import * as reporter from './reporter.mjs';
 
 const parseArgs = (argv) => {
   const positional = [];
@@ -28,9 +29,6 @@ const loadConfig = async (srcDir) => {
   }
 };
 
-const formatSize = (bytes) =>
-  bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
-
 const FAVICON_MIME = { png: 'image/png', ico: 'image/x-icon', svg: 'image/svg+xml', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
 
 const embedFavicon = async (faviconPath, srcDir) => {
@@ -38,12 +36,12 @@ const embedFavicon = async (faviconPath, srcDir) => {
   const ext = abs.split('.').pop().toLowerCase();
   const mime = FAVICON_MIME[ext] ?? 'image/png';
   try {
-    const data = await readFile(abs, mime === 'image/svg+xml' ? 'utf8' : 'base64');
+    const buf = await readFile(abs);
     return mime === 'image/svg+xml'
-      ? `data:image/svg+xml;utf8,${encodeURIComponent(data)}`
-      : `data:${mime};base64,${data}`;
+      ? `data:image/svg+xml;utf8,${encodeURIComponent(buf.toString('utf8'))}`
+      : `data:${mime};base64,${buf.toString('base64')}`;
   } catch (err) {
-    process.stderr.write(`[md2site] warn  could not embed favicon "${faviconPath}": ${err.message}\n`);
+    reporter.warn('favicon', `could not embed "${faviconPath}": ${err.message}`);
     return null;
   }
 };
@@ -59,9 +57,15 @@ const buildOnce = async (srcDir, config, cliName, cliFavicon, target) => {
     if (uri) site.favicon = uri;
   }
 
+  reporter.imageSummary(site.imageStats);
+  const mermaidLibSize = site.mermaidLib ? Buffer.byteLength(site.mermaidLib, 'utf8') : 0;
+  reporter.mermaidSummary(site.mermaidPages, mermaidLibSize);
+
   const html = renderSite(site);
   await writeFile(target, html, 'utf8');
-  return { pages: Object.keys(site.pages).length, size: formatSize(Buffer.byteLength(html, 'utf8')) };
+  const pages = Object.keys(site.pages).length;
+  const size = reporter.formatSize(Buffer.byteLength(html, 'utf8'));
+  return { pages, size };
 };
 
 const main = async () => {
@@ -76,9 +80,9 @@ const main = async () => {
 
   try {
     const { pages, size } = await buildOnce(srcDir, config, name, favicon, target);
-    process.stdout.write(`${target} — ${pages} pages, ${size}\n`);
+    reporter.success(target, pages, size);
   } catch (err) {
-    process.stderr.write(`${err.message}\n`);
+    reporter.error(err.message);
     process.exit(1);
   }
 
@@ -92,9 +96,9 @@ const main = async () => {
       timer = setTimeout(async () => {
         try {
           const { pages, size } = await buildOnce(srcDir, config, name, favicon, target);
-          process.stdout.write(`[${new Date().toLocaleTimeString()}] rebuilt — ${pages} pages, ${size}\n`);
+          reporter.success(target, pages, size);
         } catch (err) {
-          process.stderr.write(`[md2site] error: ${err.message}\n`);
+          reporter.error(err.message);
         }
       }, 150);
     });
