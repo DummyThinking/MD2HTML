@@ -114,7 +114,10 @@ pre.mermaid{background:none;border:none;border-radius:0;padding:0;margin:0;overf
 .preview-block.showing-source .toggle-btn .icon-src{display:none}
 .preview-block.showing-source .toggle-btn .icon-prev{display:flex}
 .actions{display:flex;gap:6px}
-.code-content{overflow-x:auto}
+.code-content{overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.code-content::-webkit-scrollbar{height:6px}.code-content::-webkit-scrollbar-track{background:transparent}
+.code-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.code-content::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 .code-content table{display:table;width:max-content;min-width:100%;border-collapse:collapse;margin:0;font-size:inherit}
 .code-content td{border:none;vertical-align:top}
 .code-content .line-number{width:1%;padding:3px 14px 3px 16px;color:var(--muted);user-select:none;
@@ -321,6 +324,19 @@ ${mermaidTag}
     panState.inner.closest('.render-view').style.cursor='';
     panState=null;
   });
+  document.addEventListener('wheel',function(e){
+    if(!e.ctrlKey&&!e.metaKey)return;
+    var rv=e.target.closest('.render-view');
+    if(!rv||rv.classList.contains('data-view'))return;
+    e.preventDefault();
+    var inner=rv.querySelector('.diagram-inner');
+    var dz=e.deltaY<0?0.1:-0.1;
+    var curZ=parseFloat(inner.dataset.zoom||'1');
+    var z=Math.min(4,Math.max(0.25,curZ+dz));
+    inner.dataset.zoom=String(z);
+    if(z===1){inner.dataset.tx='0';inner.dataset.ty='0';inner.style.transform='';}
+    else{var tx=parseFloat(inner.dataset.tx||'0');var ty=parseFloat(inner.dataset.ty||'0');inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+z+')';}
+  },{passive:false});
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeFs();});
   function safeDecode(s){try{return decodeURIComponent(s);}catch{return s;}}
   function parseHash(){

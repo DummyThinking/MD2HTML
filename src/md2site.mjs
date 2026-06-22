@@ -64,7 +64,10 @@ const embedFavicon = async (faviconPath, srcDir) => {
 };
 
 const buildOnce = async (srcDir, config, cliName, cliFavicon, target) => {
-  const site = await bundle(srcDir);
+  const site = await bundle(srcDir, {
+    ignore: Array.isArray(config.ignore) ? config.ignore : [],
+    useGitignore: config.gitignore === true,
+  });
   site.siteTitle = cliName ?? config.name ?? site.siteTitle;
   site.defaultTheme = config.theme === 'dark' ? 'dark' : 'light';
 

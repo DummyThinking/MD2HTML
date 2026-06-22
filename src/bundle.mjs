@@ -48,8 +48,8 @@ const treeOrder = (nodes, out = []) => {
  * @param {string} root
  * @returns {Promise<Site>}
  */
-export const bundle = async (root) => {
-  const sources = await discover(root);
+export const bundle = async (root, { ignore = [], useGitignore = false } = {}) => {
+  const sources = await discover(root, { ignore, useGitignore });
   if (!sources.length) throw new Error(`no .md files found under ${root}`);
 
   const active = sources.filter((s) => !s.meta?.draft);
