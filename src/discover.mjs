@@ -1,19 +1,20 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 import yaml from 'js-yaml';
+import { warn } from './reporter.mjs';
 
 const parseFrontmatter = (content) => {
   if (!content.startsWith('---\n') && !content.startsWith('---\r\n')) return { meta: {}, markdown: content };
-  const end = content.indexOf('\n---', 4);
-  if (end < 0) return { meta: {}, markdown: content };
-  const yamlStr = content.slice(4, end);
-  const rest = content.slice(end + 4).replace(/^\r?\n/, '');
+  const closeMatch = /\n---(?:\r?\n|$)/.exec(content);
+  if (!closeMatch) return { meta: {}, markdown: content };
+  const yamlStr = content.slice(4, closeMatch.index);
+  const rest = content.slice(closeMatch.index + closeMatch[0].length);
   try {
     const parsed = yaml.load(yamlStr);
     const meta = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
     return { meta, markdown: rest };
   } catch {
-    return { meta: {}, markdown: content };
+    return { meta: {}, markdown: content, frontmatterError: true };
   }
 };
 
@@ -25,7 +26,8 @@ const walk = async (dir, root, out) => {
     else if (/\.md$/i.test(e.name)) {
       const key = relative(root, full).split(sep).join('/').replace(/\.md$/i, '');
       const raw = await readFile(full, 'utf8');
-      const { meta, markdown } = parseFrontmatter(raw);
+      const { meta, markdown, frontmatterError } = parseFrontmatter(raw);
+      if (frontmatterError) warn(key, 'invalid YAML frontmatter — treating as body');
       out.push({ key, markdown, meta });
     }
   }

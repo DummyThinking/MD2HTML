@@ -108,7 +108,7 @@ const main = async () => {
     const { watch: fsWatch } = await import('node:fs');
     let timer = null;
     fsWatch(srcDir, { recursive: true }, (event, filename) => {
-      if (!filename || !/\.(md|json)$/i.test(filename)) return;
+      if (!filename || (!/\.(md|json)$/i.test(filename) && filename !== '.md2siterc')) return;
       clearTimeout(timer);
       timer = setTimeout(async () => {
         try {

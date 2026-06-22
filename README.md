@@ -5,17 +5,17 @@ Convert a directory of Markdown files into a single-file HTML documentation site
 ## Features
 
 - **Single-file output** — all pages, images, styles, and scripts in one `.html` file; no server needed
-- **Responsive layout** — three-column grid (sidebar · content · TOC) that collapses to mobile
+- **Responsive layout** — three-column grid (sidebar · content · TOC) for multi-page sites; two-column (content · TOC) for single-page; collapses to mobile
 - **Light / dark theme** — toggle with persistent `localStorage` preference; defaults configurable
 - **Sidebar navigation** — auto-built directory tree with collapsible sections; active link highlighted
-- **Per-page TOC** — scroll-spy table of contents, auto-generated from headings
+- **Per-page TOC** — scroll-spy table of contents, auto-generated from h1–h3 headings
 - **Prev / Next navigation** — footer links between pages in sidebar order
-- **Syntax highlighting** — 200+ languages via `highlight.js`; language badge, line numbers, copy button
+- **Syntax highlighting** — 200+ languages via `highlight.js`; language badge, line numbers on multi-line blocks, copy button
 - **Language auto-detection** — unlabeled code blocks are detected automatically (Python, Rust, CSS, HTML, Bash, SQL,
   YAML, JSON, PHP, Ruby, and more)
 - **Code block titles** — annotate blocks with a filename via `` ```js title="server.js" ``
 - **Mermaid diagrams** — rendered in-browser with zoom, pan, and theme sync; inlined only when used
-- **Data previews** — flat JSON / YAML arrays and objects render as sortable tables
+- **Data previews** — flat JSON / YAML arrays and objects render as tables
 - **Config renderers** — structured view for `package.json` and `composer.json` blocks
 - **GitHub-style callouts** — `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - **Image embedding** — PNG, JPEG, WebP, AVIF, GIF, SVG etc. inlined as data URIs at build time
@@ -64,7 +64,7 @@ node src/md2site.mjs ./docs
 node src/md2site.mjs ./docs wiki.html --name "Internal Wiki"
 
 # With favicon and watch mode
-node src/md2site.mjs ./docs --favicon ./docs/logo.png --watch
+node src/md2site.mjs ./docs --favicon logo.png --watch
 ```
 
 ## Configuration file
@@ -164,8 +164,8 @@ def greet(name):
 ````
 
 If no language is given, the tool attempts to auto-detect it from a set of syntactically-distinctive languages (Python,
-Rust, CSS/SCSS, HTML, Bash, SQL, YAML, JSON, PHP, Ruby, PowerShell). Short or ambiguous snippets fall back to plain text
-rather than guess wrong.
+Rust, CSS/SCSS, HTML, Bash, SQL, YAML, JSON, XML, PHP, Ruby, PowerShell). Short or ambiguous snippets fall back to plain
+text rather than guess wrong.
 
 #### Filename annotation
 
@@ -179,20 +179,20 @@ const express = require('express');
 
 #### Data previews
 
-Flat JSON / YAML structures render as interactive tables. A source-view toggle is available on every block.
+Flat JSON / YAML structures render as tables. A source-view toggle is available on every block.
 
 | Language       | Renders as table when…                                        |
 |----------------|---------------------------------------------------------------|
 | `json`         | Root is a flat array of objects, or a flat key → value object |
 | `yaml` / `yml` | Same structure rules                                          |
 
-Nested values are serialised as compact JSON strings. Non-flat structures fall back to a syntax-highlighted code block.
+Non-flat structures fall back to a syntax-highlighted code block.
 
 #### Config file renderers
 
 | Language tag    | Renders as                                                             |
 |-----------------|------------------------------------------------------------------------|
-| `package-json`  | Node.js `package.json` — name, version, license, scripts, dependencies |
+| `package-json`  | Node.js `package.json` — name, version, description, license, private badge, scripts, dependencies, devDependencies, peerDependencies |
 | `composer-json` | PHP `composer.json` — name, description, license, require, require-dev |
 
 Requires at least a `name` field. Falls back to plain highlighted JSON if the field is missing or the content is
