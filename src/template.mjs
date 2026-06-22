@@ -78,6 +78,16 @@ pre{position:relative;background:var(--code-bg);border:1px solid var(--border);b
 table{display:block;width:max-content;max-width:100%;overflow:auto;border-collapse:collapse;margin:1.3em 0;font-size:.9rem}
 th,td{border:1px solid var(--border);padding:.55em .8em;text-align:left}th{background:var(--code-bg)}
 img{max-width:100%;border-radius:8px}hr{border:none;border-top:1px solid var(--border);margin:2.5em 0}
+.img-wrap{display:inline-block;position:relative;max-width:100%;vertical-align:bottom}
+.img-fs-btn{position:absolute;top:6px;right:6px;display:grid;place-items:center;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px;cursor:pointer;line-height:0;opacity:0;transition:opacity .15s;z-index:1}
+.img-wrap:hover .img-fs-btn{opacity:1}
+#fs-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);cursor:zoom-out;padding:2rem;overflow:auto}
+#fs-overlay.open{display:flex;align-items:center;justify-content:center}
+#fs-content{cursor:default}
+#fs-content img{max-width:90vw;max-height:90vh;border-radius:8px;object-fit:contain;display:block}
+#fs-content svg{max-width:90vw!important;max-height:90vh!important;width:auto!important;height:auto!important;display:block!important}
+#fs-close{position:fixed;top:1rem;right:1rem;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem;display:grid;place-items:center;transition:background .15s}
+#fs-close:hover{background:rgba(255,255,255,.3)}
 .mermaid:not([data-processed]){visibility:hidden}
 .mermaid svg{max-width:100%;height:auto}
 pre.mermaid{background:none;border:none;border-radius:0;padding:0;margin:0;overflow:visible}
@@ -178,7 +188,7 @@ pre.source-code{border:none;border-radius:0;margin:0}
   main{padding-top:4rem}
 }
 @media print{
-  #progress,#theme,.menu,aside,.toc-rail,.anchor,.zoom-controls,.copy-btn,.toggle-btn{display:none!important}
+  #progress,#theme,.menu,aside,.toc-rail,.anchor,.zoom-controls,.copy-btn,.toggle-btn,.img-fs-btn,#fs-overlay{display:none!important}
   .shell{display:block}
   body{font-size:11pt;color:#000;background:#fff}
   a{color:#000;text-decoration:underline}
@@ -202,6 +212,7 @@ ${multiPage ? `<button class="menu" aria-label="Toggle navigation">☰</button>`
   <main><article id="page"></article></main>
   <div class="toc-rail"><div class="toc-label">On this page</div><ul id="toc"></ul></div>
 </div>
+<div id="fs-overlay"><button id="fs-close" aria-label="Close">✕</button><div id="fs-content"></div></div>
 <script type="application/json" id="site">${data}</script>
 ${mermaidTag}
 <script>
@@ -233,6 +244,9 @@ ${mermaidTag}
   var menuBtn=document.querySelector('.menu');
   if(menuBtn)menuBtn.onclick=function(){sidebar.classList.toggle('open');};
   var CHECK_SVG='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  var fsOverlay=document.getElementById('fs-overlay'),fsContent=document.getElementById('fs-content');
+  function openFs(node){var cl=node.cloneNode(true);cl.style.transform='';fsContent.innerHTML='';fsContent.appendChild(cl);fsOverlay.classList.add('open');document.body.style.overflow='hidden';}
+  function closeFs(){fsOverlay.classList.remove('open');document.body.style.overflow='';fsContent.innerHTML='';}
   document.addEventListener('click',function(e){
     var codeCopy=e.target.closest('.code-block .copy-btn');
     if(codeCopy){
@@ -242,6 +256,13 @@ ${mermaidTag}
         var orig=codeCopy.innerHTML;codeCopy.innerHTML=CHECK_SVG;
         setTimeout(function(){codeCopy.innerHTML=orig;},1500);
       });
+      return;
+    }
+    var fsBtn=e.target.closest('.fs-btn');
+    if(fsBtn){
+      var inner=fsBtn.closest('.render-view').querySelector('.diagram-inner');
+      var target=inner.querySelector('svg')||inner.querySelector('img')||inner;
+      openFs(target);
       return;
     }
     var zBtn=e.target.closest('.zoom-btn');
@@ -271,7 +292,11 @@ ${mermaidTag}
         var orig=previewCopy.innerHTML;previewCopy.innerHTML=CHECK_SVG;
         setTimeout(function(){previewCopy.innerHTML=orig;},1500);
       });
+      return;
     }
+    var imgFsBtn=e.target.closest('.img-fs-btn');
+    if(imgFsBtn){var img=imgFsBtn.previousElementSibling;if(img&&img.tagName==='IMG')openFs(img);return;}
+    if(e.target===fsOverlay||e.target.id==='fs-close'){closeFs();}
   });
   document.addEventListener('mousedown',function(e){
     var rv=e.target.closest('.render-view');
@@ -296,6 +321,7 @@ ${mermaidTag}
     panState.inner.closest('.render-view').style.cursor='';
     panState=null;
   });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeFs();});
   function safeDecode(s){try{return decodeURIComponent(s);}catch{return s;}}
   function parseHash(){
     var h=location.hash.slice(2);
