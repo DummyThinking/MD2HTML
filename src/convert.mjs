@@ -121,12 +121,15 @@ const splitHighlighted = (html) => {
   }, []);
 };
 
-const codeHeader = (langKey) => {
+const codeHeader = (langKey, codeTitle = '') => {
   const key = langKey?.toLowerCase() ?? '';
   const name = LANG_NAMES[key] ?? langKey ?? 'Text';
   const color = LANG_COLORS[key];
   const dotStyle = color ? ` style="background:${color}"` : '';
-  return `<div class="code-header"><div class="code-title"><span class="lang-dot"${dotStyle}></span><span class="language">${esc(name)}</span></div><button class="copy-btn" title="Copy">${COPY_SVG}</button></div>`;
+  const label = codeTitle
+    ? `<span class="code-filename">${esc(codeTitle)}</span>`
+    : `<span class="language">${esc(name)}</span>`;
+  return `<div class="code-header"><div class="code-title"><span class="lang-dot"${dotStyle}></span>${label}</div><button class="copy-btn" title="Copy">${COPY_SVG}</button></div>`;
 };
 
 const highlight = (token) => {
@@ -140,7 +143,7 @@ const highlight = (token) => {
       ? `<tr><td class="line-number">${i + 1}</td><td class="code-line">${line || '&nbsp;'}</td></tr>`
       : `<tr><td class="code-line">${line}</td></tr>`
   ).join('');
-  return `<div class="code-block">${codeHeader(token.lang)}<div class="code-content"><table>${rows}</table></div></div>\n`;
+  return `<div class="code-block">${codeHeader(token.lang, token._codeTitle)}<div class="code-content"><table>${rows}</table></div></div>\n`;
 };
 
 const ZOOM_BAR = `<div class="zoom-controls"><button class="zoom-btn" data-dz="0.25" title="Zoom in">${ZIN_SVG}</button><button class="zoom-btn" data-dz="-0.25" title="Zoom out">${ZOUT_SVG}</button><button class="zoom-btn" data-dz="0" title="Reset">${ZRST_SVG}</button></div>`;
@@ -249,8 +252,13 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
     walkTokens: async (token) => {
       if (token.type === 'link') token.href = resolveLink(key, token.href);
       else if (token.type === 'image') token.href = await resolveImage(key, token.href);
-      else if (token.type === 'code' && token.lang === 'mermaid') usesMermaid = true;
-      else if (token.type === 'heading' && token.depth <= 3) {
+      else if (token.type === 'code') {
+        if (token.lang) {
+          const m = token.lang.match(/^(\S+)(?:\s+title=["']([^"']+)["'])?/);
+          if (m) { token._codeTitle = m[2] ?? ''; token.lang = m[1]; }
+        }
+        if (token.lang === 'mermaid') usesMermaid = true;
+      } else if (token.type === 'heading' && token.depth <= 3) {
         token.id = slug(token.text);
         toc.push({ depth: token.depth, text: token.text, id: token.id });
       }
@@ -261,12 +269,23 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
         if (!token.id) return `<h${token.depth}>${inner}</h${token.depth}>\n`;
         return `<h${token.depth} id="${token.id}"><a class="anchor" href="#/${key}~${token.id}" aria-label="Permalink">#</a>${inner}</h${token.depth}>\n`;
       },
+      blockquote(token) {
+        const CALLOUT_RE = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*/i;
+        const first = token.tokens[0];
+        const m = first?.type === 'paragraph' && CALLOUT_RE.exec(first.text ?? '');
+        if (!m) return `<blockquote>\n${this.parser.parse(token.tokens)}</blockquote>\n`;
+        const type = m[1].toUpperCase();
+        const fullBody = this.parser.parse(token.tokens);
+        const cleanBody = fullBody.replace(/^<p>\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*\n?/i, '<p>');
+        const LABELS = { NOTE: 'Note', TIP: 'Tip', IMPORTANT: 'Important', WARNING: 'Warning', CAUTION: 'Caution' };
+        return `<div class="callout callout-${type.toLowerCase()}"><p class="callout-title">${LABELS[type]}</p><div class="callout-body">${cleanBody}</div></div>\n`;
+      },
       code(token) {
         const line = markdown.slice(0, markdown.indexOf(token.raw)).split('\n').length;
         const warn = (msg) => process.stderr.write(`[md2site] warn  ${key}:${line} — ${msg}\n`);
         if (token.lang === 'mermaid') {
           if (!token.text.trim()) warn('mermaid: empty block');
-          return previewBlock(`<pre class="mermaid">${esc(token.text)}</pre>`, esc(token.text), 'Mermaid');
+          return previewBlock(`<pre class="mermaid">${esc(token.text)}</pre>`, esc(token.text), token._codeTitle || 'Mermaid');
         }
         if (token.lang === 'package-json' || token.lang === 'composer-json') {
           const result = renderConfigBlock(token.text, token.lang);
