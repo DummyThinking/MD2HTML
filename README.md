@@ -4,121 +4,243 @@ Convert a directory of Markdown files into a single-file HTML documentation site
 
 ## Features
 
-- 📦 **Single-file output**: Bundles all pages, images, and diagrams into one HTML file for easy sharing.
-- 🎨 **Modern UI**: Clean, responsive design with light and dark mode support.
-- 🧜 **Mermaid support**: Renders Mermaid diagrams with zoom and pan controls.
-- 🌈 **Syntax Highlighting**: Built-in support for popular programming languages via `highlight.js`.
-- 📊 **Data previews**: JSON and YAML code blocks containing flat arrays or objects are rendered as interactive tables.
-- 📦 **Config renderers**: `package.json` and `composer.json` blocks display a structured view with name, version, scripts, and dependency sections.
-- 📑 **Auto-generated Navigation**: Sidebar page tree and per-page Table of Contents.
-- 🔗 **Smart Links**: Automatically resolves links between Markdown files.
-- 📋 **Copy to Clipboard**: One-click code snippet copying for all code blocks.
-- 🌓 **Dark Mode**: Toggle between light and dark themes with persistent preference.
-- ⚡ **SPA**: Fast, client-side navigation between pages.
+- **Single-file output** — all pages, images, styles, and scripts in one `.html` file; no server needed
+- **Responsive layout** — three-column grid (sidebar · content · TOC) that collapses to mobile
+- **Light / dark theme** — toggle with persistent `localStorage` preference; defaults configurable
+- **Sidebar navigation** — auto-built directory tree with collapsible sections; active link highlighted
+- **Per-page TOC** — scroll-spy table of contents, auto-generated from headings
+- **Prev / Next navigation** — footer links between pages in sidebar order
+- **Syntax highlighting** — 200+ languages via `highlight.js`; language badge, line numbers, copy button
+- **Language auto-detection** — unlabeled code blocks are detected automatically (Python, Rust, CSS, HTML, Bash, SQL,
+  YAML, JSON, PHP, Ruby, and more)
+- **Code block titles** — annotate blocks with a filename via `` ```js title="server.js" ``
+- **Mermaid diagrams** — rendered in-browser with zoom, pan, and theme sync; inlined only when used
+- **Data previews** — flat JSON / YAML arrays and objects render as sortable tables
+- **Config renderers** — structured view for `package.json` and `composer.json` blocks
+- **GitHub-style callouts** — `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
+- **Image embedding** — PNG, JPEG, WebP, AVIF, GIF, SVG etc. inlined as data URIs at build time
+- **Smart link rewriting** — relative `.md` links become SPA hash routes automatically
+- **YAML frontmatter** — per-page `title` override and `draft` exclusion
+- **Watch mode** — rebuild on file changes with `--watch`
+- **Print stylesheet** — `Ctrl+P` produces a clean, sidebar-free layout
+- **Colored build output** — progress counter, warnings, per-image sizes, Mermaid library notice
+- **Zero runtime dependencies** — the output file has no external CDN calls
 
 ## Installation
 
-### Local Development
-
-1. Clone the repository.
-2. Ensure you have [Node.js](https://nodejs.org/) (v18+) installed.
-3. Install dependencies:
-
 ```bash
-pnpm install
-# or
-npm install
+# Install dependencies
+pnpm install   # or: npm install
 ```
 
-### Global Installation
-
-You can install the tool globally to use the `md2site` command from anywhere:
+### Global install
 
 ```bash
-pnpm add -g .
+pnpm add -g .   # then use: md2site ...
 # or
 npm install -g .
 ```
 
-### Direct Usage (npx)
-
-If you've linked the package or it's available in your registry:
-
-```bash
-npx md2site <source-directory> [output-file.html]
-```
-
 ## Usage
 
-### Using the Command
-
-If installed globally:
-
 ```bash
-md2site <source-directory> [output-file.html] [--name "Site Name"]
+md2site <source-directory> [output.html] [options]
 ```
 
-### Using Node directly
+| Option             | Default          | Description                                      |
+|--------------------|------------------|--------------------------------------------------|
+| `[output.html]`    | `site.html`      | Output file path                                 |
+| `--name "Title"`   | index page title | Override the site title                          |
+| `--favicon <path>` | —                | Embed an image file as the browser favicon       |
+| `--watch` / `-w`   | off              | Rebuild whenever a `.md` or `.json` file changes |
 
-If running from the source directory:
-
-```bash
-node src/md2site.mjs <source-directory> [output-file.html] [--name "Site Name"]
-```
-
-- `<source-directory>`: The directory containing your `.md` files.
-- `[output-file.html]`: (Optional) The name of the output file. Defaults to `site.html`.
-- `--name`: (Optional) The title of your site. Defaults to the title of the index page.
-
-### Example
+### Examples
 
 ```bash
+# Basic
+node src/md2site.mjs ./docs
+
+# Custom output and title
 node src/md2site.mjs ./docs wiki.html --name "Internal Wiki"
+
+# With favicon and watch mode
+node src/md2site.mjs ./docs --favicon ./docs/logo.png --watch
 ```
 
-## Code Block Language Aliases
+## Configuration file
 
-Beyond standard syntax highlighting, the following language tags trigger special rendering. Each block shows a rendered preview by default with a toggle to view the raw source.
+Place `md2site.json` in the root of your source directory to set project-level defaults. CLI flags override config
+values.
 
-### Data previews
+```json
+{
+  "name": "My Docs",
+  "output": "docs.html",
+  "theme": "dark",
+  "favicon": "assets/icon.png"
+}
+```
 
-| Language | Triggers table when… |
-|---|---|
-| `json` | Root is a flat array of objects, or a flat key/value object |
-| `yaml` / `yml` | Same structure rules as JSON |
+| Key       | Type                  | Description                                             |
+|-----------|-----------------------|---------------------------------------------------------|
+| `name`    | string                | Site title (same as `--name`)                           |
+| `output`  | string                | Output file path (same as the positional arg)           |
+| `theme`   | `"light"` \| `"dark"` | Default theme; users can still toggle it                |
+| `favicon` | string                | Path to favicon image, relative to the source directory |
 
-Nested objects or arrays inside values are not supported and fall back to a plain code block.
+## Frontmatter
 
-### Config file renderers
+Add a YAML frontmatter block at the top of any `.md` file to control per-page behaviour.
 
-| Language tag | Renders as |
-|---|---|
-| `package-json` | Node.js `package.json` — name, version, license, description, scripts, dependencies, devDependencies, peerDependencies |
-| `composer-json` | PHP `composer.json` — name, description, license, scripts, require, require-dev |
+```markdown
+---
+title: Getting Started
+draft: true
+---
 
-The renderer requires at least a `name` field to be present. If it is missing or the JSON is invalid, the block falls back to standard syntax-highlighted JSON.
+# This heading is ignored for the title
+```
 
-### Diagrams
+| Field   | Description                                               |
+|---------|-----------------------------------------------------------|
+| `title` | Overrides the title derived from the first `h1` heading   |
+| `draft` | Set to `true` to exclude the page from the build entirely |
 
-| Language | Behaviour |
-|---|---|
-| `mermaid` | Rendered in the browser with zoom (+/−/reset) and drag-to-pan controls |
+## Authoring
 
-> **Warning:** The Mermaid library is ~3 MB minified. A site with even a single Mermaid diagram will produce an output file that is roughly 3 MB larger than one without. Avoid Mermaid in size-sensitive contexts.
+### Callouts
+
+GitHub-style alert callouts are supported:
+
+```markdown
+> [!NOTE]
+> Useful information the reader should know.
+
+> [!TIP]
+> Helpful advice for doing things better.
+
+> [!IMPORTANT]
+> Key information users need to succeed.
+
+> [!WARNING]
+> Urgent info that needs immediate attention.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes.
+```
+
+Each type renders with a distinct colour in both light and dark mode.
+
+### Code blocks
+
+#### Language tag
+
+Specify the language for syntax highlighting:
+
+````markdown
+```python
+def greet(name):
+    return f"Hello, {name}!"
+```
+````
+
+If no language is given, the tool attempts to auto-detect it from a set of syntactically-distinctive languages (Python,
+Rust, CSS/SCSS, HTML, Bash, SQL, YAML, JSON, PHP, Ruby, PowerShell). Short or ambiguous snippets fall back to plain text
+rather than guess wrong.
+
+#### Filename annotation
+
+Add a `title=` attribute to the info string to show a filename in the code block header:
+
+````markdown
+```js title="server.js"
+const express = require('express');
+```
+````
+
+#### Data previews
+
+Flat JSON / YAML structures render as interactive tables. A source-view toggle is available on every block.
+
+| Language       | Renders as table when…                                        |
+|----------------|---------------------------------------------------------------|
+| `json`         | Root is a flat array of objects, or a flat key → value object |
+| `yaml` / `yml` | Same structure rules                                          |
+
+Nested values are serialised as compact JSON strings. Non-flat structures fall back to a syntax-highlighted code block.
+
+#### Config file renderers
+
+| Language tag    | Renders as                                                             |
+|-----------------|------------------------------------------------------------------------|
+| `package-json`  | Node.js `package.json` — name, version, license, scripts, dependencies |
+| `composer-json` | PHP `composer.json` — name, description, license, require, require-dev |
+
+Requires at least a `name` field. Falls back to plain highlighted JSON if the field is missing or the content is
+invalid.
+
+#### Mermaid diagrams
+
+````markdown
+```mermaid
+graph LR
+  A --> B --> C
+```
+````
+
+Diagrams render in-browser with zoom (+/−/reset), drag-to-pan, and automatic re-render when the theme changes. The
+Mermaid library (~3 MB) is inlined only when at least one diagram is present — the build output reports its size.
+
+> [!WARNING]
+> A site with even a single Mermaid block will be ~3 MB larger. Avoid in size-sensitive contexts.
+
+## Build output
+
+The CLI writes progress and diagnostics to **stderr** and the final result line to **stdout**. Colors are suppressed
+automatically when the output is piped.
+
+```
+[md2site] 1/6 api/overview
+[md2site] 2/6 guides/setup
+...
+[md2site] warn  guides/setup — broken link: "missing.md"
+
+[md2site] Images — 3 embedded, 64 KB total
+  guides/setup    logo.svg         4 KB
+  guides/setup    banner.png      60 KB
+
+[md2site] Mermaid — 1 page, library 3.3 MB
+  diagrams/mermaid
+
+docs.html — 6 pages, 3.6 MB
+```
+
+Image sizes are colour-coded: yellow ≥ 80 KB, red ≥ 500 KB.
 
 ## How it works
 
-1. **Discovery**: Scans the source directory recursively for all `.md` files.
-2. **Conversion**: Uses `marked` to convert Markdown to HTML, with custom renderers for code blocks.
-3. **Assets**: Locally referenced images are automatically embedded as Base64/SVG data URIs.
-4. **Diagrams**: If Mermaid code blocks are found, the `mermaid` library is bundled into the output.
-5. **Bundling**: All content, styles, and scripts are injected into a single HTML template.
-6. **Navigation**: The generated file is a Single-Page Application that handles navigation via URL hashes (e.g., `#/path/to/page~heading-id`).
+1. **Discovery** — walks the source directory, reads all `.md` files, strips YAML frontmatter
+2. **Conversion** — `marked` converts Markdown to HTML in parallel; custom renderers handle code blocks, callouts, and
+   headings
+3. **Link rewriting** — relative `.md` links become SPA hash routes (`#/path/to/page`); unresolved links are reported as
+   warnings
+4. **Asset embedding** — local images are read and inlined as data URIs; external URLs pass through unchanged
+5. **Bundling** — page data is serialised as JSON into a `<script>` tag; `highlight.js` styles and (if needed)
+   `mermaid.min.js` are inlined
+6. **SPA runtime** — a small inline script handles hash-based navigation, scroll-spy TOC, theme toggle, zoom/pan, and
+   copy buttons
+
+### URL scheme
+
+| Format                      | Meaning                                    |
+|-----------------------------|--------------------------------------------|
+| `#/path/to/page`            | Navigate to a page                         |
+| `#/path/to/page~heading-id` | Navigate to a page and scroll to a heading |
 
 ## Requirements
 
-- Node.js (v18+)
-- Dependencies: `marked`, `highlight.js`, `mermaid`, `js-yaml`.
+- Node.js v18+
+- `marked`, `highlight.js`, `mermaid`, `js-yaml` (installed via `pnpm install`)
 
 ## License
 
