@@ -18,6 +18,9 @@ export const renderSite = ({ pages, tree, order = [], indexKey, siteTitle, usesM
   const data = JSON.stringify({ pages, indexKey, order }).replace(/</g, '\\u003c');
   const multiPage = Object.keys(pages).length > 1;
   const shellCols = multiPage ? '300px minmax(0,1fr) 220px' : 'minmax(0,1fr) 220px';
+  const shellColsNoToc = multiPage ? '300px minmax(0,1fr)' : 'minmax(0,1fr)';
+  const articleMaxWidth = multiPage ? '46rem' : '60rem';
+  const articleMaxWidthNoToc = multiPage ? '56rem' : '70rem';
   const mermaidTag = usesMermaid && mermaidLib
     ? `<script>${mermaidLib.replace(/<\/script/gi, '<\\/script')}</script>`
     : '';
@@ -44,6 +47,8 @@ body{margin:0;background:var(--bg);color:var(--text);
   -webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:50;transition:width .1s}
 .shell{display:grid;grid-template-columns:${shellCols};max-width:1320px;margin:0 auto;gap:2.5rem;padding:0 1.5rem}
+.shell.no-toc{grid-template-columns:${shellColsNoToc}}
+.shell.no-toc .toc-rail{display:none}
 aside,.toc-rail{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:2rem 0;scrollbar-width:thin}
 .brand{font-weight:700;font-size:.95rem;margin-bottom:1rem}
 .tree-label,.toc-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:1.2rem 0 .5rem}
@@ -61,7 +66,8 @@ aside,.toc-rail{position:sticky;top:0;align-self:start;height:100vh;overflow-y:a
 #toc li.lvl-2 a{padding-left:1.6rem}#toc li.lvl-3 a{padding-left:2.3rem;font-size:.8rem}
 #toc a.active{color:var(--accent);border-left-color:var(--accent);font-weight:600}
 main{padding:2.5rem 0 6rem;min-width:0}
-article{max-width:46rem}
+article{max-width:${articleMaxWidth}}
+.shell.no-toc article{max-width:${articleMaxWidthNoToc}}
 h1,h2,h3,h4{line-height:1.25;position:relative}
 h1{font-size:2.3rem;margin:.2em 0 .6em}
 h2{font-size:1.6rem;margin:2em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
@@ -180,9 +186,9 @@ pre.source-code{border:none;border-radius:0;margin:0}
   border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:1rem;
   box-shadow:var(--shadow);display:grid;place-items:center}
 .menu{display:none}
-@media(max-width:1080px){.shell{max-width:none;grid-template-columns:300px minmax(0,1fr)}.toc-rail{display:none}article{max-width:none}}
+@media(max-width:1080px){.shell,.shell.no-toc{max-width:none;grid-template-columns:300px minmax(0,1fr)}.toc-rail{display:none}article,.shell.no-toc article{max-width:none}}
 @media(max-width:820px){
-  .shell{grid-template-columns:1fr}
+  .shell,.shell.no-toc{grid-template-columns:1fr}
   aside{position:fixed;inset:0 auto 0 0;width:300px;background:var(--surface);box-shadow:var(--shadow);
     padding:2rem 1.5rem;transform:translateX(-100%);transition:transform .25s;z-index:45}
   aside.open{transform:none}
@@ -223,6 +229,7 @@ ${mermaidTag}
   var SITE=JSON.parse(document.getElementById('site').textContent);
   var root=document.documentElement,article=document.getElementById('page');
   var tocEl=document.getElementById('toc'),sidebar=document.getElementById('sidebar'),bar=document.getElementById('progress');
+  var shellEl=document.querySelector('.shell');
   var esc=function(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   var observer=null,current=null,panState=null;
   var stored=localStorage.getItem('theme');
@@ -435,6 +442,7 @@ ${mermaidTag}
       var page=SITE.pages[key];
       article.innerHTML=page.body+renderPrevNext(key);
       renderToc(page.toc,key);
+      shellEl.classList.toggle('no-toc',!page.toc||page.toc.length<=1);
       markTree(key);
       document.title=page.title;
       enhance();
