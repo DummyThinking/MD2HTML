@@ -1,5 +1,5 @@
 {
-  "name": "md2html",
+  "name": "@pavel-pastore/md2site",
   "version": "1.0.0",
   "description": "Convert a directory of Markdown files into a single-file HTML documentation site with Mermaid support and syntax highlighting.",
   "scripts": {

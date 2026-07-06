@@ -210,7 +210,7 @@ pre.source-code{border:none;border-radius:0;margin:0}
 </head>
 <body>
 <div id="progress"></div>
-<button id="theme" aria-label="Toggle theme">◐</button>
+<button id="theme" aria-label="Toggle theme"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"/><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
 ${multiPage ? `<button class="menu" aria-label="Toggle navigation">☰</button>` : ''}
 <div class="shell">
   ${multiPage ? `<aside id="sidebar">
