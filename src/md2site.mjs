@@ -7,9 +7,21 @@ import { bundle } from './bundle.mjs';
 import { renderSite } from './template.mjs';
 import * as reporter from './reporter.mjs';
 
+const USAGE = `usage: md2site <directory> [output.html] [options]
+
+Converts a directory of Markdown files into a single self-contained HTML site.
+
+Options:
+  --name <title>            Site title (overrides md2site.json "name")
+  --favicon <path>          Favicon image to embed (png, ico, svg, jpg)
+  --watch, -w               Rebuild automatically when source files change
+  --disable-table-print     Render JSON/YAML code blocks as plain code instead of tables
+  --help, -h                Show this help message
+`;
+
 const parseArgs = (argv) => {
   const positional = [];
-  let name = null, favicon = null, watch = false;
+  let name = null, favicon = null, watch = false, codeTableEnabled = null, help = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--name') name = argv[++i];
@@ -17,9 +29,11 @@ const parseArgs = (argv) => {
     else if (arg === '--favicon') favicon = argv[++i];
     else if (arg.startsWith('--favicon=')) favicon = arg.slice(10);
     else if (arg === '--watch' || arg === '-w') watch = true;
+    else if (arg === '--disable-table-print') codeTableEnabled = false;
+    else if (arg === '--help' || arg === '-h') help = true;
     else positional.push(arg);
   }
-  return { src: positional[0], out: positional[1], name, favicon, watch };
+  return { src: positional[0], out: positional[1], name, favicon, watch, codeTableEnabled, help };
 };
 
 const parseConfigText = (text, allowYaml = false) => {
@@ -67,6 +81,7 @@ const buildOnce = async (srcDir, config, cliName, cliFavicon, target) => {
   const site = await bundle(srcDir, {
     ignore: Array.isArray(config.ignore) ? config.ignore : [],
     useGitignore: config.gitignore === true,
+    codeTableEnabled: config.codeTableEnabled ?? true,
   });
   site.siteTitle = cliName ?? config.name ?? site.siteTitle;
   site.defaultTheme = config.theme === 'dark' ? 'dark' : 'light';
@@ -89,14 +104,20 @@ const buildOnce = async (srcDir, config, cliName, cliFavicon, target) => {
 };
 
 const main = async () => {
-  const { src, out, name, favicon, watch } = parseArgs(process.argv.slice(2));
+  const { src, out, name, favicon, watch, codeTableEnabled, help } = parseArgs(process.argv.slice(2));
+  if (help) {
+    process.stdout.write(USAGE);
+    process.exit(0);
+  }
   if (!src) {
-    process.stderr.write('usage: md2site <directory> [output.html] [--name "Site Name"] [--favicon path] [--watch]\n');
+    process.stderr.write(USAGE);
     process.exit(1);
   }
   const srcDir = resolve(src);
   const config = await loadConfig(srcDir);
   const target = out ?? config.output ?? 'site.html';
+  if (codeTableEnabled != null) config.codeTableEnabled = codeTableEnabled;
+  else if (config.codeTableEnabled == null) config.codeTableEnabled = true;
 
   try {
     const { pages, size } = await buildOnce(srcDir, config, name, favicon, target);

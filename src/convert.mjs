@@ -144,6 +144,18 @@ const DETECT_SUBSET = [
   'sql', 'xml', 'yaml',
 ];
 
+// Wraps already-highlighted (or plain escaped) HTML into <tr>/<td> rows for
+// use inside a .code-content table, one row per source line.
+const toRows = (html) => {
+  const lines = splitHighlighted(html);
+  const multi = lines.length > 1;
+  return lines.map((line, i) =>
+    multi
+      ? `<tr><td class="line-number">${i + 1}</td><td class="code-line">${line || '&nbsp;'}</td></tr>`
+      : `<tr><td class="code-line">${line}</td></tr>`
+  ).join('');
+};
+
 const highlight = (token) => {
   let effectiveLang, hlValue;
   if (token.lang) {
@@ -161,27 +173,28 @@ const highlight = (token) => {
       hlValue = highlightJs.highlight(token.text, { language: 'plaintext' }).value;
     }
   }
-  const lines = splitHighlighted(hlValue);
-  const multi = lines.length > 1;
-  const rows = lines.map((line, i) =>
-    multi
-      ? `<tr><td class="line-number">${i + 1}</td><td class="code-line">${line || '&nbsp;'}</td></tr>`
-      : `<tr><td class="code-line">${line}</td></tr>`
-  ).join('');
   // token.lang (user-specified short form like 'js') preferred over resolved name for display
   const displayLang = token.lang || effectiveLang;
-  return `<div class="code-block">${codeHeader(displayLang, token._codeTitle)}<div class="code-content"><table>${rows}</table></div></div>\n`;
+
+  return { rows: toRows(hlValue), lang: displayLang };
 };
+
+const createCodeContent = (rows) => `<table class="code-content"><tbody>${rows}</tbody></table>`;
+
+const createCodeBlock = (token) => {
+  const {rows, lang} = highlight(token);
+  return `<div class="code-block">${codeHeader(lang, token._codeTitle)}${createCodeContent(rows)}</div>\n`;
+}
 
 const ZOOM_BAR = `<div class="zoom-controls"><button class="zoom-btn" data-dz="0.25" title="Zoom in">${ZIN_SVG}</button><button class="zoom-btn" data-dz="-0.25" title="Zoom out">${ZOUT_SVG}</button><button class="zoom-btn" data-dz="0" title="Reset">${ZRST_SVG}</button><button class="zoom-btn fs-btn" title="Full screen">${FULL_SVG}</button></div>`;
 
-const previewBlock = (renderHtml, sourceHtml, label, { zoom = true } = {}) => {
+const previewBlock = (renderHtml, sourceRows, label, { zoom = true } = {}) => {
   const hdr = `<div class="preview-header"><div class="code-title"><span class="language">${esc(label)}</span></div><div class="actions"><button class="toggle-btn" title="Toggle source"><span class="icon-src">${CODE_SVG}</span><span class="icon-prev">${EYE_SVG}</span></button><button class="copy-btn" title="Copy source">${COPY_SVG}</button></div></div>`;
   const renderContent = zoom
     ? `${ZOOM_BAR}<div class="diagram-canvas"><div class="diagram-inner">${renderHtml}</div></div>`
     : renderHtml;
   const render = `<div class="render-view${zoom ? '' : ' data-view'}">${renderContent}</div>`;
-  const source = `<div class="source-view hidden"><pre class="source-code">${sourceHtml}</pre></div>`;
+  const source = `<div class="source-view hidden">${createCodeContent(sourceRows)}</div>`;
   return `<div class="preview-block">${hdr}${render}${source}</div>\n`;
 };
 
@@ -265,11 +278,11 @@ const renderConfigBlock = (text, lang) => {
     pkgSection('Peer Dependencies',depTable(data.peerDependencies)),
   ].join('');
 
-  const srcHtml = highlightJs.highlight(text, { language: 'json' }).value;
-  return previewBlock(`<div class="pkg-view">${header}${sections}</div>`, srcHtml, label, { zoom: false });
+  const srcRows = toRows(highlightJs.highlight(text, { language: 'json' }).value);
+  return previewBlock(`<div class="pkg-view">${header}${sections}</div>`, srcRows, label, { zoom: false });
 };
 
-export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
+export const convert = async (markdown, key, { resolveLink, resolveImage }, codeTableEnabled = true) => {
   const slug = slugify();
   const toc = [];
   let usesMermaid = false;
@@ -312,7 +325,7 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
         const warn = (msg) => reportWarn(`${key}:${line}`, msg);
         if (token.lang === 'mermaid') {
           if (!token.text.trim()) warn('mermaid: empty block');
-          return previewBlock(`<pre class="mermaid">${esc(token.text)}</pre>`, esc(token.text), token._codeTitle || 'Mermaid');
+          return previewBlock(`<pre class="mermaid">${esc(token.text)}</pre>`, toRows(esc(token.text)), token._codeTitle || 'Mermaid');
         }
         if (token.lang === 'package-json' || token.lang === 'composer-json') {
           const result = renderConfigBlock(token.text, token.lang);
@@ -329,15 +342,15 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
           })();
           warn(`${token.lang}: ${reason}`);
         }
-        if (token.lang === 'json' || token.lang === 'yaml' || token.lang === 'yml') {
+        if (codeTableEnabled && (token.lang === 'json' || token.lang === 'yaml' || token.lang === 'yml')) {
           const tableHtml = tryDataPreview(token.text, token.lang);
           if (tableHtml) {
-            const srcHtml = highlightJs.highlight(token.text, { language: token.lang }).value;
+            const srcRows = highlight(token).rows;
             const label = LANG_NAMES[token.lang] ?? token.lang.toUpperCase();
-            return previewBlock(tableHtml, srcHtml, label, { zoom: false });
+            return previewBlock(tableHtml, srcRows, label, { zoom: false });
           }
         }
-        return highlight(token);
+        return createCodeBlock(token);
       },
       image(token) {
         const href = token.href ?? '';
@@ -348,7 +361,7 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }) => {
           return `<span class="img-wrap">${img}<button class="img-fs-btn" title="Full screen">${FULL_SVG}</button></span>`;
         }
         const raw = decodeURIComponent(href.slice('data:image/svg+xml;utf8,'.length));
-        return previewBlock(img, highlightJs.highlight(raw, { language: 'xml' }).value, 'SVG');
+        return previewBlock(img, toRows(highlightJs.highlight(raw, { language: 'xml' }).value), 'SVG');
       },
     },
   });

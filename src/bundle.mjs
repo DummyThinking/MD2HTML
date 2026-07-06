@@ -46,9 +46,12 @@ const treeOrder = (nodes, out = []) => {
 
 /**
  * @param {string} root
+ * @param ignore
+ * @param useGitignore
+ * @param codeTableEnabled
  * @returns {Promise<Site>}
  */
-export const bundle = async (root, { ignore = [], useGitignore = false } = {}) => {
+export const bundle = async (root, { ignore = [], useGitignore = false , codeTableEnabled = true} = {}) => {
   const sources = await discover(root, { ignore, useGitignore });
   if (!sources.length) throw new Error(`no .md files found under ${root}`);
 
@@ -62,7 +65,7 @@ export const bundle = async (root, { ignore = [], useGitignore = false } = {}) =
   const total = active.length;
   let done = 0;
   const results = await Promise.all(active.map(async ({ key, markdown, meta }) => {
-    const page = await convert(markdown, key, { resolveLink, resolveImage });
+    const page = await convert(markdown, key, { resolveLink, resolveImage }, codeTableEnabled);
     reporter.progress(++done, total, key);
     return { key, page, meta };
   }));

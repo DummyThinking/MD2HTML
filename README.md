@@ -47,12 +47,14 @@ npm install -g .
 md2site <source-directory> [output.html] [options]
 ```
 
-| Option             | Default          | Description                                      |
-|--------------------|------------------|--------------------------------------------------|
-| `[output.html]`    | `site.html`      | Output file path                                 |
-| `--name "Title"`   | index page title | Override the site title                          |
-| `--favicon <path>` | —                | Embed an image file as the browser favicon       |
-| `--watch` / `-w`   | off              | Rebuild whenever a `.md` or `.json` file changes |
+| Option                    | Default          | Description                                       |
+|---------------------------|------------------|----------------------------------------------------|
+| `[output.html]`           | `site.html`      | Output file path                                  |
+| `--name "Title"`          | index page title | Override the site title                          |
+| `--favicon <path>`        | —                | Embed an image file as the browser favicon        |
+| `--watch` / `-w`          | off              | Rebuild whenever a `.md` or `.json` file changes  |
+| `--disable-table-print`   | off              | Render JSON/YAML code blocks as plain code instead of tables |
+| `--help` / `-h`           | —                | Print usage information and exit                  |
 
 ### Examples
 
@@ -98,12 +100,13 @@ favicon: assets/icon.png
 }
 ```
 
-| Key       | Type                  | Description                                             |
-|-----------|-----------------------|---------------------------------------------------------|
-| `name`    | string                | Site title (same as `--name`)                           |
-| `output`  | string                | Output file path (same as the positional arg)           |
-| `theme`   | `"light"` \| `"dark"` | Default theme; users can still toggle it                |
-| `favicon` | string                | Path to favicon image, relative to the source directory |
+| Key                | Type                  | Description                                             |
+|--------------------|-----------------------|----------------------------------------------------------|
+| `name`             | string                | Site title (same as `--name`)                           |
+| `output`           | string                | Output file path (same as the positional arg)           |
+| `theme`            | `"light"` \| `"dark"` | Default theme; users can still toggle it                |
+| `favicon`          | string                | Path to favicon image, relative to the source directory |
+| `codeTableEnabled` | boolean               | Render JSON/YAML code blocks as tables (same as `--disable-table-print` when set to `false`); defaults to `true` |
 
 When the tool is installed globally, keeping `.md2siterc` alongside your docs means running `md2site ./docs` from any directory just works — no flags needed.
 
@@ -186,7 +189,8 @@ Flat JSON / YAML structures render as tables. A source-view toggle is available 
 | `json`         | Root is a flat array of objects, or a flat key → value object |
 | `yaml` / `yml` | Same structure rules                                          |
 
-Non-flat structures fall back to a syntax-highlighted code block.
+Non-flat structures fall back to a syntax-highlighted code block. Pass `--disable-table-print` (or set
+`codeTableEnabled: false` in the config file) to always render JSON/YAML as plain highlighted code instead.
 
 #### Config file renderers
 
