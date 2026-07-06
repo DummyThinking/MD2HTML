@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { posix, join } from 'node:path';
+import { Buffer } from 'node:buffer';
 import { warn } from './reporter.mjs';
 
 const MIME = {
@@ -24,6 +25,7 @@ export const createImageEmbedder = (root, onEmbed) => async (currentKey, src) =>
   if (!mime) return src;
   try {
     const filePath = join(root, ...rel.split('/'));
+    /** @type {Buffer} */
     const buf = await readFile(filePath);
     const uri = mime === 'image/svg+xml'
       ? `data:image/svg+xml;utf8,${encodeURIComponent(buf.toString('utf8'))}`

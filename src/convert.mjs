@@ -3,6 +3,24 @@ import highlightJs from 'highlight.js';
 import yaml from 'js-yaml';
 import { warn as reportWarn } from './reporter.mjs';
 
+/**
+ * @typedef {import('marked').Tokens.Code & { _codeTitle?: string }} CodeToken
+ * @typedef {import('marked').Tokens.Heading & { id?: string }} HeadingToken
+ * @typedef {import('marked').Tokens.Blockquote} BlockquoteToken
+ * @typedef {import('marked').Tokens.Image} ImageToken
+ * @typedef {{
+ *   name: string,
+ *   version?: string,
+ *   license?: string,
+ *   private?: boolean,
+ *   description?: string,
+ *   scripts?: Object<string, string>,
+ *   dependencies?: Object<string, string>,
+ *   devDependencies?: Object<string, string>,
+ *   peerDependencies?: Object<string, string>,
+ * }} PkgData
+ */
+
 const esc = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -156,6 +174,7 @@ const toRows = (html) => {
   ).join('');
 };
 
+/** @param {CodeToken} token */
 const highlight = (token) => {
   let effectiveLang, hlValue;
   if (token.lang) {
@@ -181,6 +200,7 @@ const highlight = (token) => {
 
 const createCodeContent = (rows) => `<table class="code-content"><tbody>${rows}</tbody></table>`;
 
+/** @param {CodeToken} token */
 const createCodeBlock = (token) => {
   const {rows, lang} = highlight(token);
   return `<div class="code-block">${codeHeader(lang, token._codeTitle)}${createCodeContent(rows)}</div>\n`;
@@ -254,6 +274,7 @@ const pkgSection = (title, content) =>
 const badge = (text, cls) => `<span class="pkg-badge ${cls}">${esc(text)}</span>`;
 
 const renderConfigBlock = (text, lang) => {
+  /** @type {PkgData} */
   let data;
   try { data = JSON.parse(text); } catch { return null; }
   if (!data || typeof data !== 'object' || Array.isArray(data) || !data.name) return null;
@@ -304,11 +325,13 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }, code
       }
     },
     renderer: {
+      /** @param {HeadingToken} token */
       heading(token) {
         const inner = this.parser.parseInline(token.tokens);
         if (!token.id) return `<h${token.depth}>${inner}</h${token.depth}>\n`;
         return `<h${token.depth} id="${token.id}"><a class="anchor" href="#/${key}~${token.id}" aria-label="Permalink">#</a>${inner}</h${token.depth}>\n`;
       },
+      /** @param {BlockquoteToken} token */
       blockquote(token) {
         const CALLOUT_RE = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*/i;
         const first = token.tokens[0];
@@ -320,6 +343,7 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }, code
         const LABELS = { NOTE: 'Note', TIP: 'Tip', IMPORTANT: 'Important', WARNING: 'Warning', CAUTION: 'Caution' };
         return `<div class="callout callout-${type.toLowerCase()}"><p class="callout-title">${LABELS[type]}</p><div class="callout-body">${cleanBody}</div></div>\n`;
       },
+      /** @param {CodeToken} token */
       code(token) {
         const line = markdown.slice(0, markdown.indexOf(token.raw)).split('\n').length;
         const warn = (msg) => reportWarn(`${key}:${line}`, msg);
@@ -352,6 +376,7 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }, code
         }
         return createCodeBlock(token);
       },
+      /** @param {ImageToken} token */
       image(token) {
         const href = token.href ?? '';
         const alt = esc(token.text ?? '');

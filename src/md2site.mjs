@@ -2,6 +2,7 @@
 import { resolve, join } from 'node:path';
 import { writeFile, readFile } from 'node:fs/promises';
 import process from 'node:process';
+import { Buffer } from 'node:buffer';
 import yaml from 'js-yaml';
 import { bundle } from './bundle.mjs';
 import { renderSite } from './template.mjs';

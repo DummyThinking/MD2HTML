@@ -1,3 +1,5 @@
+import process from 'node:process';
+
 // Colored terminal output for stderr (progress/warnings) and stdout (success).
 // All colors are suppressed automatically when the stream is not a TTY (pipes, CI).
 
