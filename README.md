@@ -2,7 +2,7 @@
 
 Convert a directory of Markdown files into a single-file HTML documentation site.
 
-![Md2Html example output — sidebar navigation, a code block with filename and line numbers, a rendered Mermaid diagram, and a callout](.github/assets/screenshot.png)
+![Md2Html example output — sidebar navigation, a code block with filename and line numbers, a rendered Mermaid diagram, and a callout](https://raw.githubusercontent.com/DummyThinking/MD2HTML/master/.github/assets/screenshot.png)
 
 ## Features
 

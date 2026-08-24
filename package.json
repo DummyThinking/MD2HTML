@@ -15,6 +15,9 @@
   "engines": {
     "node": ">=20"
   },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "test": "node --test"
   },
