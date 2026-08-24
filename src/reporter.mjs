@@ -9,7 +9,7 @@ const outTTY = process.stdout.isTTY;
 const ce = (code, s) => errTTY ? `\x1b[${code}m${s}\x1b[0m` : s;
 const co = (code, s) => outTTY ? `\x1b[${code}m${s}\x1b[0m` : s;
 
-const PREFIX = ce('2', '[md2site]');
+const PREFIX = ce('2', '[md2html]');
 
 export const formatSize = (bytes) =>
   bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB`

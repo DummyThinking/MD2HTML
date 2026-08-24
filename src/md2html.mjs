@@ -8,12 +8,12 @@ import { bundle } from './bundle.mjs';
 import { renderSite } from './template.mjs';
 import * as reporter from './reporter.mjs';
 
-const USAGE = `usage: md2site <directory> [output.html] [options]
+const USAGE = `usage: md2html <directory> [output.html] [options]
 
 Converts a directory of Markdown files into a single self-contained HTML site.
 
 Options:
-  --name <title>            Site title (overrides md2site.json "name")
+  --name <title>            Site title (overrides md2html.json "name")
   --favicon <path>          Favicon image to embed (png, ico, svg, jpg)
   --watch, -w               Rebuild automatically when source files change
   --disable-table-print     Render JSON/YAML code blocks as plain code instead of tables
@@ -47,15 +47,15 @@ const parseConfigText = (text, allowYaml = false) => {
 };
 
 const loadConfig = async (srcDir) => {
-  // .md2siterc (JSON or YAML) takes precedence over md2site.json
+  // .md2htmlrc (JSON or YAML) takes precedence over md2html.json
   try {
-    const text = await readFile(join(srcDir, '.md2siterc'), 'utf8');
+    const text = await readFile(join(srcDir, '.md2htmlrc'), 'utf8');
     const cfg = parseConfigText(text, true);
     if (cfg) return cfg;
-    reporter.warn('.md2siterc', 'could not parse as JSON or YAML — falling back to md2site.json');
+    reporter.warn('.md2htmlrc', 'could not parse as JSON or YAML — falling back to md2html.json');
   } catch { /* not found, try next */ }
   try {
-    return JSON.parse(await readFile(join(srcDir, 'md2site.json'), 'utf8'));
+    return JSON.parse(await readFile(join(srcDir, 'md2html.json'), 'utf8'));
   } catch {
     return {};
   }
@@ -133,7 +133,7 @@ const main = async () => {
     const { watch: fsWatch } = await import('node:fs');
     let timer = null;
     fsWatch(srcDir, { recursive: true }, (event, filename) => {
-      if (!filename || (!/\.(md|json)$/i.test(filename) && filename !== '.md2siterc')) return;
+      if (!filename || (!/\.(md|json)$/i.test(filename) && filename !== '.md2htmlrc')) return;
       clearTimeout(timer);
       timer = setTimeout(async () => {
         try {

@@ -1,13 +1,25 @@
 {
-  "name": "@pavel-pastore/md2site",
+  "name": "@dummythinking/md2html",
   "version": "1.0.0",
   "description": "Convert a directory of Markdown files into a single-file HTML documentation site with Mermaid support and syntax highlighting.",
+  "license": "MIT",
+  "author": "Pavel Pastore <support@dummythinking.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DummyThinking/MD2HTML.git"
+  },
+  "homepage": "https://github.com/DummyThinking/MD2HTML#readme",
+  "bugs": {
+    "url": "https://github.com/DummyThinking/MD2HTML/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "private": true,
   "bin": {
-    "md2site": "./src/md2site.mjs"
+    "md2html": "./src/md2html.mjs"
   },
   "dependencies": {
     "highlight.js": "^11.11.1",
