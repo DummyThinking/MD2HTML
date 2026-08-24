@@ -5,10 +5,10 @@ Convert a directory of Markdown files into a single-file HTML documentation site
 ## Features
 
 - **Single-file output** — all pages, images, styles, and scripts in one `.html` file; no server needed
-- **Responsive layout** — three-column grid (sidebar · content · TOC) for multi-page sites; two-column (content · TOC)
+- **Responsive layout** — three-column grid (sidebar · content · TOC) for multipage sites; two-column (content · TOC)
   for single-page; collapses to mobile
 - **Light / dark theme** — toggle with persistent `localStorage` preference; defaults configurable
-- **Sidebar navigation** — auto-built directory tree with collapsible sections; active link highlighted
+- **Sidebar navigation** — auto-built directory tree with collapsible sections; an active link highlighted
 - **Per-page TOC** — scroll-spy table of contents, auto-generated from h1–h3 headings
 - **Prev / Next navigation** — footer links between pages in sidebar order
 - **Syntax highlighting** — 200+ languages via `highlight.js`; language badge, line numbers on multi-line blocks, copy
@@ -69,6 +69,9 @@ node src/md2html.mjs ./docs wiki.html --name "Internal Wiki"
 
 # With favicon and watch mode
 node src/md2html.mjs ./docs --favicon logo.png --watch
+
+# Build the example doc set shipped in this repo
+node src/md2html.mjs ./examples/docs example-site.html --name "Md2Html Example"
 ```
 
 ## Configuration file
@@ -116,7 +119,7 @@ directory just works — no flags needed.
 
 ## Frontmatter
 
-Add a YAML frontmatter block at the top of any `.md` file to control per-page behaviour.
+Add a YAML frontmatter block at the top of any `.md` file to control per-page behavior.
 
 ```markdown
 ---
@@ -155,7 +158,7 @@ GitHub-style alert callouts are supported:
 > Advises about risks or negative outcomes.
 ```
 
-Each type renders with a distinct colour in both light and dark mode.
+Each type renders with a distinct color in both light and dark mode.
 
 ### Code blocks
 
@@ -170,7 +173,7 @@ def greet(name):
 ```
 ````
 
-If no language is given, the tool attempts to auto-detect it from a set of syntactically-distinctive languages (Python,
+If no language is given, the tool attempts to auto-detect it from a set of syntactically distinctive languages (Python,
 Rust, CSS/SCSS, HTML, Bash, SQL, YAML, JSON, XML, PHP, Ruby, PowerShell). Short or ambiguous snippets fall back to plain
 text rather than guess wrong.
 
@@ -219,7 +222,7 @@ Diagrams render in-browser with zoom (+/−/reset), drag-to-pan, and automatic r
 Mermaid library (~3 MB) is inlined only when at least one diagram is present — the build output reports its size.
 
 > [!WARNING]
-> A site with even a single Mermaid block will be ~3 MB larger. Avoid in size-sensitive contexts.
+> A site with even a single Mermaid block will be ~3 MB larger. Avoid it in size-sensitive contexts.
 
 ## Build output
 
@@ -242,7 +245,7 @@ automatically when the output is piped.
 docs.html — 6 pages, 3.6 MB
 ```
 
-Image sizes are colour-coded: yellow ≥ 80 KB, red ≥ 500 KB.
+Image sizes are color-coded: yellow ≥ 80 KB, red ≥ 500 KB.
 
 ## How it works
 
@@ -252,7 +255,7 @@ Image sizes are colour-coded: yellow ≥ 80 KB, red ≥ 500 KB.
 3. **Link rewriting** — relative `.md` links become SPA hash routes (`#/path/to/page`); unresolved links are reported as
    warnings
 4. **Asset embedding** — local images are read and inlined as data URIs; external URLs pass through unchanged
-5. **Bundling** — page data is serialised as JSON into a `<script>` tag; `highlight.js` styles and (if needed)
+5. **Bundling** — page data is serialized as JSON into a `<script>` tag; `highlight.js` styles and (if needed)
    `mermaid.min.js` are inlined
 6. **SPA runtime** — a small inline script handles hash-based navigation, scroll-spy TOC, theme toggle, zoom/pan, and
    copy buttons
@@ -266,9 +269,17 @@ Image sizes are colour-coded: yellow ≥ 80 KB, red ≥ 500 KB.
 
 ## Requirements
 
-- Node.js v18+
+- Node.js v20+ (recursive `fs.watch` is required for `--watch` mode)
 - `marked`, `highlight.js`, `mermaid`, `js-yaml` (installed via `pnpm install`)
+
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for local setup and guidelines.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
-Private
+[MIT](LICENSE) © Pavel Pastore

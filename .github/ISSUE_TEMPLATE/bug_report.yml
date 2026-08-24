@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in the CLI or the generated HTML site is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal Markdown that reproduces it
+      description: A small `.md` snippet (or directory layout) that triggers the bug.
+      render: markdown
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command run
+      placeholder: node src/md2html.mjs ./docs site.html --watch
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the exact error message / stderr output, or a screenshot of the rendered HTML if it's a visual bug.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: md2html / Node version
+      placeholder: md2html 1.0.0, Node 20.11.0
+    validations:
+      required: true
