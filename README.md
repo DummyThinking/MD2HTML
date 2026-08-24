@@ -2,6 +2,8 @@
 
 Convert a directory of Markdown files into a single-file HTML documentation site.
 
+![Md2Html example output — sidebar navigation, a code block with filename and line numbers, a rendered Mermaid diagram, and a callout](.github/assets/screenshot.png)
+
 ## Features
 
 - **Single-file output** — all pages, images, styles, and scripts in one `.html` file; no server needed
@@ -268,7 +270,7 @@ Image sizes are color-coded: yellow ≥ 80 KB, red ≥ 500 KB.
 | `#/path/to/page~heading-id` | Navigate to a page and scroll to a heading |
 
 ## Requirements
-
+ 
 - Node.js v20+ (recursive `fs.watch` is required for `--watch` mode)
 - `marked`, `highlight.js`, `mermaid`, `js-yaml` (installed via `pnpm install`)
 
