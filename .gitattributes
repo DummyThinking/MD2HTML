@@ -1,0 +1,21 @@
+# Normalize line endings to LF for everything Git treats as text — avoids
+# the LF/CRLF warnings and spurious whole-file diffs on Windows clones.
+* text=auto eol=lf
+
+# Windows-native scripts keep CRLF, since that's what cmd.exe/PowerShell expect.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: never touch line endings, never diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
