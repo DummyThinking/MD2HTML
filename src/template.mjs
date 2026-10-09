@@ -74,6 +74,7 @@ h2{font-size:1.6rem;margin:2em 0 .5em;padding-bottom:.3em;border-bottom:1px soli
 h3{font-size:1.25rem;margin:1.6em 0 .4em}
 .anchor{position:absolute;left:-1.2em;color:var(--border);text-decoration:none;opacity:0;transition:opacity .15s}
 h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+.wikilink-broken{color:var(--border);text-decoration:underline dotted;cursor:help}
 a{color:var(--accent)}
 blockquote{margin:1.2em 0;padding:.4em 1.1em;border-left:3px solid var(--accent);
   background:var(--accent-soft);border-radius:0 6px 6px 0;color:var(--muted)}

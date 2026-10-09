@@ -24,6 +24,7 @@ Convert a directory of Markdown files into a single-file HTML documentation site
 - **GitHub-style callouts** — `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - **Image embedding** — PNG, JPEG, WebP, AVIF, GIF, SVG etc. inlined as data URIs at build time
 - **Smart link rewriting** — relative `.md` links become SPA hash routes automatically
+- **Wikilinks** — `[[page]]`, `[[page#Heading|alias]]` resolved by file name, Obsidian-style
 - **YAML frontmatter** — per-page `title` override and `draft` exclusion
 - **Watch mode** — rebuild on file changes with `--watch`
 - **Print stylesheet** — `Ctrl+P` produces a clean, sidebar-free layout
@@ -138,6 +139,24 @@ draft: true
 | `draft` | Set to `true` to exclude the page from the build entirely |
 
 ## Authoring
+
+### Wikilinks
+
+`[[...]]` links are resolved against the pages in your doc set, Obsidian-style:
+
+| Syntax                    | Links to                                                       |
+|---------------------------|----------------------------------------------------------------|
+| `[[page]]`                | the page named `page` anywhere in the tree (case-insensitive)  |
+| `[[dir/page]]`            | the page whose path ends in `dir/page`                         |
+| `[[page#Heading]]`        | a heading on that page (shown as `page > Heading`)             |
+| `[[#Heading]]`            | a heading on the current page                                  |
+| `[[page\|alias]]`         | the page, displayed as `alias` (also `[[page#Heading\|alias]]`) |
+
+- When several pages share a name, the one in the same directory as the linking page wins, then the shallowest path.
+- Unresolved wikilinks render as a dotted-underline span and are reported as `broken link: "[[name]]"` warnings.
+- Wikilinks inside code spans and code blocks are left untouched.
+- Inside a Markdown table cell, escape the alias pipe: `[[page\|alias]]`.
+- Heading fragments use the heading's slug, so a repeated heading can only be linked by its first occurrence.
 
 ### Callouts
 
@@ -254,8 +273,8 @@ Image sizes are color-coded: yellow ≥ 80 KB, red ≥ 500 KB.
 1. **Discovery** — walks the source directory, reads all `.md` files, strips YAML frontmatter
 2. **Conversion** — `marked` converts Markdown to HTML in parallel; custom renderers handle code blocks, callouts, and
    headings
-3. **Link rewriting** — relative `.md` links become SPA hash routes (`#/path/to/page`); unresolved links are reported as
-   warnings
+3. **Link rewriting** — relative `.md` links and `[[wikilinks]]` become SPA hash routes (`#/path/to/page`); unresolved
+   links are reported as warnings
 4. **Asset embedding** — local images are read and inlined as data URIs; external URLs pass through unchanged
 5. **Bundling** — page data is serialized as JSON into a `<script>` tag; `highlight.js` styles and (if needed)
    `mermaid.min.js` are inlined

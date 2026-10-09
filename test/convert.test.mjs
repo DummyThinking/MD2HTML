@@ -38,3 +38,12 @@ test('renders a GitHub-style NOTE callout', async () => {
   assert.match(page.body, /callout-note/);
   assert.match(page.body, /Useful info\./);
 });
+
+test('renders [[wikilinks]] as links and unresolved ones as marked spans', async () => {
+  const wiki = (_k, inner) => inner === 'ok' ? { href: '#/ok', label: 'ok' } : { href: null, label: inner };
+  const resolveLink = Object.assign(identityLink, { wiki });
+  const page = await convert('See [[ok]] and [[gone]], not `[[code]]`.', 'index', { ...hooks, resolveLink });
+  assert.match(page.body, /<a href="#\/ok">ok<\/a>/);
+  assert.match(page.body, /<span class="wikilink-broken"[^>]*>gone<\/span>/);
+  assert.match(page.body, /<code>\[\[code\]\]<\/code>/);
+});

@@ -310,8 +310,25 @@ export const convert = async (markdown, key, { resolveLink, resolveImage }, code
   const marked = new Marked({
     gfm: true,
     async: true,
+    extensions: [{
+      name: 'wikilink',
+      level: 'inline',
+      start: (src) => src.indexOf('[['),
+      tokenizer(src) {
+        const m = /^\[\[([^\[\]\n]+?)\]\]/.exec(src);
+        if (m) return { type: 'wikilink', raw: m[0], inner: m[1] };
+      },
+      renderer(token) {
+        return token.href
+          ? `<a href="${esc(token.href)}">${esc(token.label)}</a>`
+          : `<span class="wikilink-broken" title="Page not found">${esc(token.label)}</span>`;
+      },
+    }],
     walkTokens: async (token) => {
-      if (token.type === 'link') token.href = resolveLink(key, token.href);
+      if (token.type === 'wikilink') {
+        if (resolveLink.wiki) Object.assign(token, resolveLink.wiki(key, token.inner));
+        else token.label = token.inner;
+      } else if (token.type === 'link') token.href = resolveLink(key, token.href);
       else if (token.type === 'image') token.href = await resolveImage(key, token.href);
       else if (token.type === 'code') {
         if (token.lang) {
