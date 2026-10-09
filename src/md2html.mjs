@@ -15,6 +15,7 @@ Converts a directory of Markdown files into a single self-contained HTML site.
 Options:
   --name <title>            Site title (overrides md2html.json "name")
   --favicon <path>          Favicon image to embed (png, ico, svg, jpg)
+  --start-page <page>       Page shown first, e.g. guides/setup (default: root index/readme)
   --watch, -w               Rebuild automatically when source files change
   --disable-table-print     Render JSON/YAML code blocks as plain code instead of tables
   --help, -h                Show this help message
@@ -22,19 +23,21 @@ Options:
 
 const parseArgs = (argv) => {
   const positional = [];
-  let name = null, favicon = null, watch = false, codeTableEnabled = null, help = false;
+  let name = null, favicon = null, startPage = null, watch = false, codeTableEnabled = null, help = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--name') name = argv[++i];
     else if (arg.startsWith('--name=')) name = arg.slice(7);
     else if (arg === '--favicon') favicon = argv[++i];
     else if (arg.startsWith('--favicon=')) favicon = arg.slice(10);
+    else if (arg === '--start-page') startPage = argv[++i];
+    else if (arg.startsWith('--start-page=')) startPage = arg.slice(13);
     else if (arg === '--watch' || arg === '-w') watch = true;
     else if (arg === '--disable-table-print') codeTableEnabled = false;
     else if (arg === '--help' || arg === '-h') help = true;
     else positional.push(arg);
   }
-  return { src: positional[0], out: positional[1], name, favicon, watch, codeTableEnabled, help };
+  return { src: positional[0], out: positional[1], name, favicon, startPage, watch, codeTableEnabled, help };
 };
 
 const parseConfigText = (text, allowYaml = false) => {
@@ -78,8 +81,9 @@ const embedFavicon = async (faviconPath, srcDir) => {
   }
 };
 
-const buildOnce = async (srcDir, config, cliName, cliFavicon, target) => {
+const buildOnce = async (srcDir, config, cliName, cliFavicon, cliStartPage, target) => {
   const site = await bundle(srcDir, {
+    startPage: cliStartPage ?? config.startPage ?? null,
     ignore: Array.isArray(config.ignore) ? config.ignore : [],
     useGitignore: config.gitignore === true,
     codeTableEnabled: config.codeTableEnabled ?? true,
@@ -105,7 +109,7 @@ const buildOnce = async (srcDir, config, cliName, cliFavicon, target) => {
 };
 
 const main = async () => {
-  const { src, out, name, favicon, watch, codeTableEnabled, help } = parseArgs(process.argv.slice(2));
+  const { src, out, name, favicon, startPage, watch, codeTableEnabled, help } = parseArgs(process.argv.slice(2));
   if (help) {
     process.stdout.write(USAGE);
     process.exit(0);
@@ -121,7 +125,7 @@ const main = async () => {
   else if (config.codeTableEnabled == null) config.codeTableEnabled = true;
 
   try {
-    const { pages, size } = await buildOnce(srcDir, config, name, favicon, target);
+    const { pages, size } = await buildOnce(srcDir, config, name, favicon, startPage, target);
     reporter.success(target, pages, size);
   } catch (err) {
     reporter.error(err.message);
@@ -137,7 +141,7 @@ const main = async () => {
       clearTimeout(timer);
       timer = setTimeout(async () => {
         try {
-          const { pages, size } = await buildOnce(srcDir, config, name, favicon, target);
+          const { pages, size } = await buildOnce(srcDir, config, name, favicon, startPage, target);
           reporter.success(target, pages, size);
         } catch (err) {
           reporter.error(err.message);

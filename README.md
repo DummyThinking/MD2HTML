@@ -57,6 +57,7 @@ md2html <source-directory> [output.html] [options]
 | `[output.html]`         | `site.html`      | Output file path                                             |
 | `--name "Title"`        | index page title | Override the site title                                      |
 | `--favicon <path>`      | —                | Embed an image file as the browser favicon                   |
+| `--start-page <page>`   | root index/readme | Page shown first, e.g. `guides/setup` (`.md` optional)      |
 | `--watch` / `-w`        | off              | Rebuild whenever a `.md` or `.json` file changes             |
 | `--disable-table-print` | off              | Render JSON/YAML code blocks as plain code instead of tables |
 | `--help` / `-h`         | —                | Print usage information and exit                             |
@@ -115,7 +116,13 @@ favicon: assets/icon.png
 | `output`           | string                | Output file path (same as the positional arg)                                                                    |
 | `theme`            | `"light"` \| `"dark"` | Default theme; users can still toggle it                                                                         |
 | `favicon`          | string                | Path to favicon image, relative to the source directory                                                          |
+| `startPage`        | string                | Page shown first (same as `--start-page`); defaults to the `index`/`readme` page                                 |
 | `codeTableEnabled` | boolean               | Render JSON/YAML code blocks as tables (same as `--disable-table-print` when set to `false`); defaults to `true` |
+
+The start page is the page opened when the URL has no hash and the target of unknown routes. Its path is matched
+case-insensitively against page paths (a unique trailing match such as `setup` also works). If nothing matches, a
+warning is printed and the default page is used. The default is the `index` or `readme` page in the root folder; if
+there is none, the first `index`/`readme` found in a subfolder, then the first page. The site title still comes from the default page.
 
 When the tool is installed globally, keeping `.md2htmlrc` alongside your docs means running `md2html ./docs` from any
 directory just works — no flags needed.

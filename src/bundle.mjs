@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import { discover } from './discover.mjs';
 import { createResolver } from './links.mjs';
 import { createImageEmbedder } from './assets.mjs';
@@ -45,13 +46,39 @@ const treeOrder = (nodes, out = []) => {
 };
 
 /**
+ * Default start page: a root-level index/readme, else the first index/readme found
+ * in any folder, else the first page.
+ * @param {string[]} keys
+ * @returns {string}
+ */
+export const defaultStartPage = (keys) =>
+  keys.find((k) => /^(index|readme)$/i.test(k))
+  ?? keys.find((k) => /\/(index|readme)$/i.test(k))
+  ?? keys[0];
+
+/**
+ * Matches a user-supplied start page (e.g. "guides/setup", "guides/setup.md", "./Setup")
+ * against the page keys: exact path first, then a unique trailing-path match.
+ * @param {string[]} keys
+ * @param {string} want
+ * @returns {string|undefined}
+ */
+export const resolveStartPage = (keys, want) => {
+  const norm = posix.normalize(String(want).replace(/\\/g, '/')).replace(/\.md$/i, '').replace(/^(\.\/|\/)+/, '').toLowerCase();
+  const exact = keys.find((k) => k.toLowerCase() === norm);
+  if (exact) return exact;
+  const tail = keys.filter((k) => k.toLowerCase().endsWith('/' + norm));
+  return tail.length === 1 ? tail[0] : undefined;
+};
+
+/**
  * @param {string} root
  * @param ignore
  * @param useGitignore
  * @param codeTableEnabled
  * @returns {Promise<Site>}
  */
-export const bundle = async (root, { ignore = [], useGitignore = false , codeTableEnabled = true} = {}) => {
+export const bundle = async (root, { ignore = [], useGitignore = false , codeTableEnabled = true, startPage = null} = {}) => {
   const sources = await discover(root, { ignore, useGitignore });
   if (!sources.length) throw new Error(`no .md files found under ${root}`);
 
@@ -87,7 +114,13 @@ export const bundle = async (root, { ignore = [], useGitignore = false , codeTab
   const tree = buildTree(list);
   const order = treeOrder(tree);
   const mermaidPages = results.filter((r) => r.page.usesMermaid).map((r) => r.key);
-  const indexKey = active.find((s) => /(^|\/)(index|readme)$/i.test(s.key))?.key ?? active[0].key;
+  const defaultKey = defaultStartPage(active.map((s) => s.key));
+  let indexKey = defaultKey;
+  if (startPage) {
+    const found = resolveStartPage(active.map((s) => s.key), startPage);
+    if (found) indexKey = found;
+    else reporter.warn('start-page', `"${startPage}" does not match any page — using "${defaultKey}"`);
+  }
   const mermaidLib = usesMermaid ? await loadMermaidLib() : null;
-  return { pages, tree, order, indexKey, siteTitle: pages[indexKey].title, usesMermaid, mermaidLib, imageStats, mermaidPages };
+  return { pages, tree, order, indexKey, siteTitle: pages[defaultKey].title, usesMermaid, mermaidLib, imageStats, mermaidPages };
 };
