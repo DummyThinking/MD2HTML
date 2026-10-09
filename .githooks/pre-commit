@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Auto-bumps PATCH on every non-doc commit, per
+# docs/architecture/branching-and-versioning.md. Enable once per clone with:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo "")"
+
+# MAJOR/MINOR are bumped by hand when cutting a dev/* branch; master never
+# gets a direct commit under this workflow. Either way, don't auto-bump.
+case "$branch" in
+  dev/*|master|main) exit 0 ;;
+esac
+
+staged="$(git diff --cached --name-only --diff-filter=ACM)"
+[ -z "$staged" ] && exit 0
+
+# Doc-only changes don't bump the version.
+non_doc=false
+while IFS= read -r f; do
+  case "$f" in
+    docs/*|*.md|.claude/*) ;;
+    *) non_doc=true ;;
+  esac
+done <<< "$staged"
+$non_doc || exit 0
+
+# First manifest found wins. Polyglot repos with more than one of these
+# should hardcode the right one here instead of relying on this order.
+# C# projects: version lives in the repo-root Directory.Build.props (the
+# standard MSBuild way to share a version across every project in a
+# solution), not in individual .csproj files.
+manifest=""
+for candidate in package.json composer.json pyproject.toml Cargo.toml Directory.Build.props; do
+  if [ -f "$candidate" ]; then
+    manifest="$candidate"
+    break
+  fi
+done
+[ -z "$manifest" ] && exit 0
+
+case "$manifest" in
+  package.json|composer.json)
+    prefix='"version"[[:space:]]*:[[:space:]]*"'
+    suffix='"'
+    ;;
+  pyproject.toml|Cargo.toml)
+    prefix='^version[[:space:]]*=[[:space:]]*"'
+    suffix='"'
+    ;;
+  Directory.Build.props)
+    prefix='<Version>'
+    suffix='</Version>'
+    ;;
+esac
+
+current="$(grep -m1 -oE "${prefix}[0-9]+\.[0-9]+\.[0-9]+${suffix}" "$manifest" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+[ -z "$current" ] && exit 0
+
+IFS='.' read -r major minor patch <<< "$current"
+new="$major.$minor.$((patch + 1))"
+
+# | as delimiter, not /: Directory.Build.props's </Version> suffix contains
+# a / that would otherwise terminate the s/// early.
+sed -i.bak -E "s|(${prefix})${current}(${suffix})|\1${new}\2|" "$manifest"
+rm -f "${manifest}.bak"
+
+git add "$manifest"
+echo "pre-commit: bumped $manifest $current -> $new"

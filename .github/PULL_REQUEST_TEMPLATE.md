@@ -12,3 +12,5 @@
 - [ ] No new runtime dependencies were added to the generated HTML output
 - [ ] Tested against a real Markdown folder, not just a syntax check
 - [ ] README updated if behavior or CLI flags changed
+- [ ] `CHANGELOG.md` updated (as the last commit on the branch)
+- [ ] Branch targets the active `dev/*` branch, not `master` (only `dev/*` merges into `master`)

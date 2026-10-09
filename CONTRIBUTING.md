@@ -32,6 +32,29 @@ pnpm test   # or: node --test
 4. Test your change manually against a real Markdown folder (see `examples/docs`) and check the generated HTML in a browser — light and dark theme, with and without Mermaid diagrams.
 5. Keep commits focused; write commit messages that explain *why*, not just *what*.
 
+## Branches
+
+- `master` — always releasable. Only `dev/<MAJOR.MINOR>` branches merge into it (regular, non-squash merge, tagged on merge).
+- `dev/<MAJOR.MINOR>` — one per minor version, cut from `master`. The commit that cuts it bumps `MAJOR`/`MINOR` by hand (e.g. `dev/1.1` begins at `1.1.0`). Kept after merging so it can be reopened for hotfixes.
+- `feat/*`, `chore/*`, `fix/*`, etc. — branch off the active `dev/*` branch, merge back into it. Never branch off `master` directly.
+- Hotfixing an already-shipped version: reopen that version's `dev/*` from its tag, branch off *that*, and forward-port the fix into the currently active `dev/*` afterward.
+
+Full policy, including merge and tagging rules: see [`docs/architecture/branching-and-versioning.md`](docs/architecture/branching-and-versioning.md).
+
+## Versioning
+
+The version lives in `package.json` as `MAJOR.MINOR.PATCH`. `MAJOR`/`MINOR` are bumped by hand, once, in the commit that starts a new `dev/*` branch. `PATCH` is bumped automatically by the `.githooks/pre-commit` hook on every non-doc commit on `feat/*`/`chore/*`/`fix/*` branches. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Never bump `PATCH` by hand while the hook is enabled. Doc-only changes (`docs/`, `*.md`, `.claude/`) don't bump anything.
+
+## Changelog
+
+Update `CHANGELOG.md` ([Keep a Changelog](https://keepachangelog.com/) format) as the last commit on a branch before its PR is done — and again if the branch picks up more commits after the PR is already open.
+
 ## Reporting bugs / requesting features
 
 Use the issue templates — they ask for the minimum needed to reproduce (source Markdown, command run, expected vs. actual output).
