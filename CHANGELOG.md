@@ -4,12 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-09
 
 ### Added
 
-- `--start-page <page>` option / `startPage` config key to choose the page shown first (defaults to the root `index`/`readme` page, else the first one found)
+- `--start-page <page>` option / `startPage` config key to choose the page shown first
 - `[[wikilink]]` resolution (`[[page]]`, `[[dir/page]]`, `[[page#Heading]]`, `[[page|alias]]`) with nearest-match disambiguation and broken-link warnings
+
+### Changed
+
+- The default start page now prefers an `index`/`readme` page in the root folder; previously the first one discovered won, which was often inside a subfolder. If there is no root one, the first `index`/`readme` found is used, then the first page
 
 ## [1.0.0] - 2026-08-24
 
