@@ -58,6 +58,8 @@ md2html <source-directory> [output.html] [options]
 | `--name "Title"`        | index page title | Override the site title                                      |
 | `--favicon <path>`      | —                | Embed an image file as the browser favicon                   |
 | `--start-page <page>`   | root index/readme | Page shown first, e.g. `guides/setup` (`.md` optional)      |
+| `--asset-root <dir>`    | —                | Also embed images from this folder, even outside the source directory (repeatable; see [Files outside the source directory](#files-outside-the-source-directory)) |
+| `--include-linked`      | off              | Bundle `.md` files outside the source directory that pages link to |
 | `--watch` / `-w`        | off              | Rebuild whenever a `.md` or `.json` file changes             |
 | `--disable-table-print` | off              | Render JSON/YAML code blocks as plain code instead of tables |
 | `--help` / `-h`         | —                | Print usage information and exit                             |
@@ -115,7 +117,9 @@ favicon: assets/icon.png
 | `name`             | string                | Site title (same as `--name`)                                                                                    |
 | `output`           | string                | Output file path (same as the positional arg)                                                                    |
 | `theme`            | `"light"` \| `"dark"` | Default theme; users can still toggle it                                                                         |
-| `favicon`          | string                | Path to favicon image, relative to the source directory                                                          |
+| `favicon`          | string                | Path to favicon image, relative to the source directory (`--favicon` is relative to the current directory)       |
+| `assetRoots`       | string[]              | Extra folders images may be embedded from, relative to the source directory (same as `--asset-root`)             |
+| `includeLinked`    | boolean               | Bundle linked `.md` files outside the source directory (same as `--include-linked`); defaults to `false`         |
 | `startPage`        | string                | Page shown first (same as `--start-page`); defaults to the `index`/`readme` page                                 |
 | `codeTableEnabled` | boolean               | Render JSON/YAML code blocks as tables (same as `--disable-table-print` when set to `false`); defaults to `true` |
 
@@ -123,6 +127,24 @@ The start page is the page opened when the URL has no hash and the target of unk
 case-insensitively against page paths (a unique trailing match such as `setup` also works). If nothing matches, a
 warning is printed and the default page is used. The default is the `index` or `readme` page in the root folder; if
 there is none, the first `index`/`readme` found in a subfolder, then the first page. The site title still comes from the default page.
+
+### Files outside the source directory
+
+The source directory itself can be any path, e.g. `md2html ../../docs_folder`. By default everything *referenced from*
+the pages must live inside it:
+
+- **Images** such as `![logo](../shared/logo.png)` that point outside are not embedded (a warning is printed).
+  Allow a folder with `--asset-root ../shared` (repeatable) or `assetRoots` in the config file. Any image inside an
+  allowed folder may then be embedded.
+- **Links** to a `.md` file outside the source directory are reported as broken. With `--include-linked` (or
+  `includeLinked: true`) such files are bundled as extra pages, shown in the sidebar under `_external/`. Links between
+  those files are followed transitively, their own relative links resolve against their real folder, and a link back
+  into the source directory works as usual. Images next to a pulled-in file (in its own folder or below) are embedded
+  without `--asset-root`. Only existing `.md` files are followed, `draft: true` pages are skipped, and `ignore` /
+  `gitignore` rules apply to the source directory only.
+
+With `--watch`, the folders of pulled-in files are watched too (asset folders are not, same as images in the source
+directory).
 
 When the tool is installed globally, keeping `.md2htmlrc` alongside your docs means running `md2html ./docs` from any
 directory just works — no flags needed.

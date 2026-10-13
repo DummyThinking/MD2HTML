@@ -1,11 +1,13 @@
-import { posix } from 'node:path';
-import { discover } from './discover.mjs';
+import { posix, resolve, relative } from 'node:path';
+import { readFileSync, statSync } from 'node:fs';
+import { discover, makePage } from './discover.mjs';
 import { createResolver } from './links.mjs';
 import { createImageEmbedder } from './assets.mjs';
 import { loadMermaidLib } from './mermaid.mjs';
 import { convert } from './convert.mjs';
 import { buildTree } from './tree.mjs';
 import * as reporter from './reporter.mjs';
+import { isInside, fold, toPosix } from './paths.mjs';
 
 /**
  * @typedef {Object} Page
@@ -35,6 +37,7 @@ import * as reporter from './reporter.mjs';
  * @property {string} [defaultTheme]
  * @property {ImageStat[]} imageStats
  * @property {string[]} mermaidPages
+ * @property {Array<{key: string, file: string}>} linkedPages  pages pulled in from outside the source directory
  */
 
 const treeOrder = (nodes, out = []) => {
@@ -76,26 +79,74 @@ export const resolveStartPage = (keys, want) => {
  * @param ignore
  * @param useGitignore
  * @param codeTableEnabled
+ * @param startPage
+ * @param {string[]} assetRoots  absolute directories images may be embedded from besides `root`
+ * @param {boolean} includeLinked  bundle `.md` files outside `root` that pages link to
  * @returns {Promise<Site>}
  */
-export const bundle = async (root, { ignore = [], useGitignore = false , codeTableEnabled = true, startPage = null} = {}) => {
+export const bundle = async (root, {
+  ignore = [], useGitignore = false, codeTableEnabled = true, startPage = null,
+  assetRoots = [], includeLinked = false,
+} = {}) => {
   const sources = await discover(root, { ignore, useGitignore });
   if (!sources.length) throw new Error(`no .md files found under ${root}`);
 
   const active = sources.filter((s) => !s.meta?.draft);
   if (!active.length) throw new Error('all .md files are marked as draft');
 
-  const resolveLink = createResolver(new Set(active.map((s) => s.key)));
-  const imageStats = [];
-  const resolveImage = createImageEmbedder(root, (page, src, size) => imageStats.push({ page, src, size }));
+  const keys = new Set(active.map((s) => s.key));
+  const virtualPaths = new Map();   // key -> path relative to root, for pages outside it
+  const linkedByPath = new Map();   // folded absolute path -> key (null: a draft)
+  const linkedPages = [];
+  const pending = [];
 
-  const total = active.length;
+  // Called for a link target that is not a page under root. Pulls the target in when it is an
+  // existing .md file outside root (and includeLinked is on); the new page is converted in the next
+  // round, so links between outside pages are followed transitively and cycles end at linkedByPath.
+  const external = (target) => {
+    const abs = resolve(root, ...target.split('/'));
+    const file = /\.md$/i.test(abs) ? abs : abs + '.md';
+    if (!statSync(file, { throwIfNoEntry: false })?.isFile()) return undefined;
+    const rel = toPosix(relative(root, file));
+    const virtual = rel.replace(/\.md$/i, '');
+    if (isInside(root, file)) {   // e.g. ../docs/x.md written from a page in docs/
+      return keys.has(virtual) ? { key: virtual } : undefined;
+    }
+    if (!includeLinked) return { blocked: true };
+    const id = fold(file);
+    if (linkedByPath.has(id)) {
+      const known = linkedByPath.get(id);
+      return known ? { key: known } : undefined;
+    }
+    const base = '_external/' + virtual.replace(/^(?:\.\.\/)+/, '');
+    let key = base;
+    for (let n = 2; keys.has(key); n++) key = `${base}-${n}`;
+    const page = makePage(readFileSync(file, 'utf8'), key, rel);
+    if (page.meta?.draft) {
+      linkedByPath.set(id, null);
+      return undefined;
+    }
+    linkedByPath.set(id, key);
+    keys.add(key);
+    virtualPaths.set(key, virtual);
+    linkedPages.push({ key, file });
+    pending.push(page);
+    return { key };
+  };
+
+  const resolveLink = createResolver(keys, { virtualPaths, external });
+  const imageStats = [];
+  const resolveImage = createImageEmbedder(root, (page, src, size) => imageStats.push({ page, src, size }), { assetRoots, virtualPaths });
+
   let done = 0;
-  const results = await Promise.all(active.map(async ({ key, markdown, meta }) => {
-    const page = await convert(markdown, key, { resolveLink, resolveImage }, codeTableEnabled);
-    reporter.progress(++done, total, key);
-    return { key, page, meta };
-  }));
+  const results = [];
+  for (let batch = active; batch.length; batch = pending.splice(0)) {
+    results.push(...await Promise.all(batch.map(async ({ key, markdown, meta }) => {
+      const page = await convert(markdown, key, { resolveLink, resolveImage }, codeTableEnabled);
+      reporter.progress(++done, active.length + linkedPages.length, key);
+      return { key, page, meta };
+    })));
+  }
 
   const pages = {};
   const list = [];
@@ -107,8 +158,8 @@ export const bundle = async (root, { ignore = [], useGitignore = false , codeTab
     usesMermaid ||= page.usesMermaid;
   }
 
-  for (const { from, href } of resolveLink.broken) {
-    reporter.warn(from, `broken link: "${href}"`);
+  for (const { from, href, outside } of resolveLink.broken) {
+    reporter.warn(from, `broken link: "${href}"${outside ? ' — the file is outside the source directory; use --include-linked to bundle it' : ''}`);
   }
 
   const tree = buildTree(list);
@@ -122,5 +173,5 @@ export const bundle = async (root, { ignore = [], useGitignore = false , codeTab
     else reporter.warn('start-page', `"${startPage}" does not match any page — using "${defaultKey}"`);
   }
   const mermaidLib = usesMermaid ? await loadMermaidLib() : null;
-  return { pages, tree, order, indexKey, siteTitle: pages[defaultKey].title, usesMermaid, mermaidLib, imageStats, mermaidPages };
+  return { pages, tree, order, indexKey, siteTitle: pages[defaultKey].title, usesMermaid, mermaidLib, imageStats, mermaidPages, linkedPages };
 };
