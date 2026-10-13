@@ -19,6 +19,13 @@ const parseFrontmatter = (content) => {
   }
 };
 
+/** Builds a page record from raw file contents. */
+export const makePage = (raw, key, rel) => {
+  const { meta, markdown, frontmatterError } = parseFrontmatter(raw);
+  if (frontmatterError) warn(key, 'invalid YAML frontmatter — treating as body');
+  return { key, rel, markdown, meta };
+};
+
 const walk = async (dir, root, out) => {
   for (const e of await readdir(dir, { withFileTypes: true })) {
     if (e.name.startsWith('.') || e.name === 'node_modules') continue;
@@ -27,10 +34,7 @@ const walk = async (dir, root, out) => {
     else if (/\.md$/i.test(e.name)) {
       const rel = relative(root, full).split(sep).join('/');
       const key = rel.replace(/\.md$/i, '');
-      const raw = await readFile(full, 'utf8');
-      const { meta, markdown, frontmatterError } = parseFrontmatter(raw);
-      if (frontmatterError) warn(key, 'invalid YAML frontmatter — treating as body');
-      out.push({ key, rel, markdown, meta });
+      out.push(makePage(await readFile(full, 'utf8'), key, rel));
     }
   }
   return out;

@@ -7,7 +7,16 @@ const route = (key, frag) => `#/${key}${frag ? '~' + frag : ''}`;
 const headingId = (text) =>
   text.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
-export const createResolver = (keys) => {
+/**
+ * @param {Set<string>} keys  page keys (relative to the source root, no extension)
+ * @param {Object} [opts]
+ * @param {Map<string, string>} [opts.virtualPaths]  key -> path relative to the source root (may start
+ *   with `../`) for pages that live outside it; every other page's path is its key
+ * @param {(target: string) => ({ key: string } | { blocked: true } | undefined)} [opts.external]
+ *   called for a link target that is not a known page; `target` is the normalised path relative to
+ *   the source root, with the extension if the link had one
+ */
+export const createResolver = (keys, { virtualPaths = new Map(), external } = {}) => {
   const broken = [];
 
   // Case-insensitive lookup of every key by full path, for [[wikilink]] resolution.
@@ -37,10 +46,13 @@ export const createResolver = (keys) => {
     const hashIdx = href.indexOf('#');
     const path = hashIdx < 0 ? href : href.slice(0, hashIdx);
     const frag = hashIdx < 0 ? '' : href.slice(hashIdx + 1);
-    const dir = posix.dirname(currentKey);
-    const target = posix.normalize(posix.join(dir, path)).replace(/\.md$/i, '');
+    const dir = posix.dirname(virtualPaths.get(currentKey) ?? currentKey);
+    const joined = posix.normalize(posix.join(dir, path));
+    const target = joined.replace(/\.md$/i, '');
     if (keys.has(target)) return route(target, frag);
-    broken.push({ from: currentKey, href });
+    const ext = external?.(joined);
+    if (ext?.key) return route(ext.key, frag);
+    broken.push(ext?.blocked ? { from: currentKey, href, outside: true } : { from: currentKey, href });
     return href;
   };
   /**

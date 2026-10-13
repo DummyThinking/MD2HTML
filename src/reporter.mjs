@@ -51,6 +51,18 @@ export const imageSummary = (images) => {
 };
 
 /**
+ * @param {Array<{key: string, file: string}>} linked  pages pulled in from outside the source directory
+ */
+export const linkedSummary = (linked) => {
+  if (!linked.length) return;
+  process.stderr.write(
+    `\n${PREFIX} ${ce('1', 'Linked')} — ${ce('36', String(linked.length))} page${linked.length !== 1 ? 's' : ''} from outside the source directory\n`
+  );
+  const colKey = Math.min(40, Math.max(...linked.map((p) => p.key.length)));
+  for (const { key, file } of linked) process.stderr.write(`  ${ce('2', key.padEnd(colKey))}  ${file}\n`);
+};
+
+/**
  * @param {string[]} pages
  * @param {number} libSize  byte length of the inlined mermaid library
  */

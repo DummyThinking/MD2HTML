@@ -1,6 +1,6 @@
 {
   "name": "@dummythinking/md2html",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Convert a directory of Markdown files into a single-file HTML documentation site with Mermaid support and syntax highlighting.",
   "license": "MIT",
   "author": "Pavel Pastore <support@dummythinking.com>",
