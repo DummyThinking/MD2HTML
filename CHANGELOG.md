@@ -10,9 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - `--start-page <page>` option / `startPage` config key to choose the page shown first
 - `[[wikilink]]` resolution (`[[page]]`, `[[dir/page]]`, `[[page#Heading]]`, `[[page|alias]]`) with nearest-match disambiguation and broken-link warnings
+- `--asset-root <dir>` option (repeatable) / `assetRoots` config key to embed images from folders outside the source directory
+- `--include-linked` option / `includeLinked` config key to bundle `.md` files outside the source directory that pages link to (followed transitively, listed under `_external/`, watched in `--watch` mode)
+- A warning for a link to an existing file outside the source directory now suggests `--include-linked`
 
 ### Changed
 
+- `--favicon` on the command line is now resolved against the current directory instead of the source directory; the `favicon` config key is still relative to the source directory
+- The image "escapes root" check now compares resolved paths, so `../<source-dir>/pic.png` (a path that leaves and re-enters the source directory) and backslash paths are handled correctly
 - The default start page now prefers an `index`/`readme` page in the root folder; previously the first one discovered won, which was often inside a subfolder. If there is no root one, the first `index`/`readme` found is used, then the first page
 
 ## [1.0.0] - 2026-08-24
